@@ -153,6 +153,7 @@ export async function* enumerateTestCases(
       const effDepth = budget ? budget.maxChainDepth : chainDepth;
       const effEncodings = budget ? budget.strategyFamilies.includes('encoding') : includeEncodings;
       const effFramings = budget ? budget.strategyFamilies.includes('framing') : includeFramings;
+      const effMultilingual = budget ? budget.strategyFamilies.includes('multilingual') : includeMultilingual;
 
       // Resolve per-probe strategy lists (may differ from global lists).
       const probeEncodings = effEncodings ? encodings : [];
@@ -184,7 +185,7 @@ export async function* enumerateTestCases(
       }
 
       // Multilingual variants (optional, LLM-assisted at apply-time)
-      if (includeMultilingual) {
+      if (effMultilingual) {
         for (const lang of languages) {
           yield make([`multilingual.translate:${lang}`]);
         }
