@@ -5,6 +5,8 @@ import { prisma } from '../../lib/prisma';
 import { env } from '../../lib/env';
 import { AgentUnderstanding } from './understanding';
 import type { ResearchDigest } from '../research/researcher';
+import { scoreProbeRelevance } from '../relevance';
+import type { RelevanceInput } from '../relevance';
 
 // v2.2 — Prisma's `take` field expects an integer; Infinity isn't valid. Convert
 // Infinity → undefined (Prisma reads undefined as "no limit").
@@ -42,6 +44,18 @@ function clamp(s: unknown, max = MAX_FIELD): string | null {
   if (s == null) return null;
   const t = typeof s === 'string' ? s : JSON.stringify(s);
   return t.length > max ? `${t.slice(0, max)}…[truncated]` : t;
+}
+
+export interface CatalogProbe { slug: string; category: string; severity: string; title: string }
+
+/** Order the injected probe catalog by relevance (desc) and annotate each row
+ *  with a tier hint so the model spends effort on the most relevant probes. */
+export function formatProbeCatalog(probes: CatalogProbe[], scores: Map<string, number>): string {
+  const tier = (s: number) => (s >= 0.66 ? 'high' : s >= 0.33 ? 'med' : 'low');
+  const ordered = [...probes].sort((a, b) => (scores.get(b.slug) ?? 0) - (scores.get(a.slug) ?? 0));
+  return ordered
+    .map((p) => `- [${scores.size ? tier(scores.get(p.slug) ?? 0) : 'n/a'}] ${p.slug} (${p.severity}, ${p.category}) — ${p.title}`)
+    .join('\n');
 }
 
 interface GenerateOptions {
@@ -152,11 +166,35 @@ ${options.knowledgeArticles
     select: { slug: true, family: true, title: true, description: true },
     orderBy: [{ family: 'asc' }, { slug: 'asc' }],
   });
+  // Compute relevance scores so the catalog is ordered most-relevant-first.
+  // Build a minimal RelevanceInput from the in-scope understanding + agent.
+  // categoryEffectiveness is kept empty here (simple path); the cartesian path
+  // already does the full version with pattern-mined effectiveness data.
+  let catalogScores: Map<string, number>;
+  if (understanding) {
+    const relevanceInput: RelevanceInput = {
+      understanding,
+      agentType: agent.agentType ?? '',
+      sensitiveDataScope: agent.sensitiveDataScope?.slice(0, 32) ?? [],
+      categoryEffectiveness: new Map(),
+    };
+    const probeSignals = catalogProbes.map((p) => ({
+      slug: p.slug,
+      category: p.category,
+      severity: p.severity,
+      applicability: Array.isArray(p.applicability) ? p.applicability : [],
+    }));
+    catalogScores = scoreProbeRelevance(probeSignals, relevanceInput);
+  } else {
+    catalogScores = new Map();
+  }
+
   const catalogBlock = catalogProbes.length > 0
     ? `\n\n=== SECURITY ENGINE PROBE CATALOG (curated; ${catalogProbes.length} entries) ===
 When a generated test case clearly aligns with one of these probes, set "probe_slug" on the case to that slug. Otherwise omit the field. The slug is used to wire deterministic detectors and compliance mapping — get it right, or leave it off.
+Probes are ordered by relevance to this agent (most relevant first); prioritise higher-tier probes.
 
-${catalogProbes.map((p) => `${p.slug}\t[${p.severity}]\t${p.category}\t${p.title}`).join('\n')}
+${formatProbeCatalog(catalogProbes, catalogScores)}
 
 === STRATEGY CHAIN (deterministic transforms; optional, applied in order) ===
 Add "strategy_chain": ["<slug>", ...] when the test would benefit from one of these payload transforms. Slugs only — do NOT inline-apply the transform yourself.

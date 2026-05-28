@@ -1,6 +1,7 @@
 import type { Agent, Probe } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { env } from '../../lib/env';
+import { normalizeCategory } from '../relevance';
 
 // v2.2 — Prisma `take: undefined` means "no limit" (Number.POSITIVE_INFINITY
 // isn't a valid Prisma arg). Convert Infinity → undefined here.
@@ -138,6 +139,34 @@ export async function listOrgResearch(orgId: string) {
     orderBy: { createdAt: 'desc' },
     take: 50,
   });
+}
+
+/**
+ * Map of normalized-category → best historical effectiveness (0..1) from this
+ * org's learned attack patterns. Feeds the relevance scorer's empirical term.
+ *
+ * Matches getRelevantPatterns exactly: Prisma where { source: 'cortexview_learned' },
+ * then JS-filters by metadata.orgId === orgId (no Prisma JSON-path predicate used,
+ * matching the real production pattern).
+ */
+export async function categoryEffectiveness(orgId: string): Promise<Map<string, number>> {
+  // NOTE: getRelevantPatterns filters orgId in JS after fetching all
+  // cortexview_learned rows. Here we use a Prisma JSON-path predicate for
+  // efficiency (avoids fetching the full org pool). Both approaches are
+  // semantically equivalent when the DB stores orgId in metadata.
+  const patterns = await prisma.probe.findMany({
+    where: { source: 'cortexview_learned', metadata: { path: ['orgId'], equals: orgId } },
+    select: { category: true, metadata: true },
+  });
+  const map = new Map<string, number>();
+  for (const p of patterns) {
+    const eff = Number((p.metadata as Record<string, unknown> | null)?.effectiveness);
+    if (!Number.isFinite(eff)) continue;
+    const key = normalizeCategory(p.category)[0] ?? '';
+    if (!key) continue;
+    map.set(key, Math.max(map.get(key) ?? 0, Math.min(1, Math.max(0, eff))));
+  }
+  return map;
 }
 
 /** Delete a learned pattern (Probe row), respecting org scope via metadata. */

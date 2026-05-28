@@ -817,6 +817,8 @@ model Agent {
   understandingTranscript Json?
   understandingStatus     String?   @default("idle") // idle | running | done | failed
   understandingError      String?
+  relevanceWeights     Json?
+  relevanceWeightsHash String?
   riskScore          Int?
   status             String      @default("active")
   lastTestedAt       DateTime?
