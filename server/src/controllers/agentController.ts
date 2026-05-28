@@ -253,11 +253,18 @@ export async function deleteAgent(req: Request, res: Response, next: NextFunctio
   }
 }
 
-async function runUnderstanding(agentId: string): Promise<void> {
+export async function runUnderstanding(agentId: string): Promise<void> {
+  // In-flight lock: atomically transition to 'running' only if not already
+  // running. If another interrogation holds the lock, this call no-ops.
+  const lock = await prisma.agent.updateMany({
+    where: { id: agentId, understandingStatus: { not: 'running' } },
+    data: { understandingStatus: 'running', understandingError: null },
+  });
+  if (lock.count === 0) return;
+
   try {
     const agent = await prisma.agent.findUnique({ where: { id: agentId } });
     if (!agent) return;
-    await prisma.agent.update({ where: { id: agentId }, data: { understandingStatus: 'running', understandingError: null } });
     const understanding = await buildAgentUnderstanding(agent, {
       onTranscript: async (transcript) => {
         await prisma.agent.update({
@@ -324,9 +331,9 @@ export async function understandAgent(req: Request, res: Response, next: NextFun
     const agent = await prisma.agent.findFirst({ where: { id: req.params.id, orgId } });
     if (!agent) throw new HttpError(404, 'Agent not found');
 
-    // Interrogation can take minutes on local models — run in the background and
-    // let the client poll agent detail (understandingStatus) for completion.
-    await prisma.agent.update({ where: { id: agent.id }, data: { understandingStatus: 'running', understandingError: null } });
+    // Interrogation is slow — runUnderstanding holds an in-flight lock so a
+    // concurrent trigger won't double-run. Fire-and-forget; client polls
+    // understandingStatus on the agent detail endpoint.
     void runUnderstanding(agent.id);
     res.status(202).json({ status: 'running', agentId: agent.id });
   } catch (err) {
