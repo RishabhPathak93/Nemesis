@@ -812,6 +812,11 @@ model Agent {
   sensitiveDataScope String[]
   userAccessLevel    String
   understanding      Json?
+  // Interactive understanding (2026-05) — raw interrogation transcript kept
+  // OUT of the test-gen payload; distilled profile stays in `understanding`.
+  understandingTranscript Json?
+  understandingStatus     String?   @default("idle") // idle | running | done | failed
+  understandingError      String?
   riskScore          Int?
   status             String      @default("active")
   lastTestedAt       DateTime?

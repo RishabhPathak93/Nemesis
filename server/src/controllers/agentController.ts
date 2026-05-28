@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { encrypt, maskKey, decrypt } from '../lib/crypto';
 import { HttpError } from '../middleware/errorHandler';
-import { generateAgentUnderstanding } from '../services/claude/understanding';
+import { buildAgentUnderstanding } from '../services/claude/understandingOrchestrator';
 import { buildSuiteForAgent } from '../services/suiteBuilder';
 import { sendToAgent } from '../services/agentConnector';
 import { enqueueTestRun } from '../queues/testRunQueue';
@@ -253,17 +253,36 @@ export async function deleteAgent(req: Request, res: Response, next: NextFunctio
   }
 }
 
-async function runUnderstanding(agentId: string): Promise<void> {
+export async function runUnderstanding(agentId: string): Promise<void> {
+  // In-flight lock: atomically transition to 'running' only if not already
+  // running. If another interrogation holds the lock, this call no-ops.
+  const lock = await prisma.agent.updateMany({
+    where: { id: agentId, understandingStatus: { not: 'running' } },
+    data: { understandingStatus: 'running', understandingError: null },
+  });
+  if (lock.count === 0) return;
+
   try {
     const agent = await prisma.agent.findUnique({ where: { id: agentId } });
     if (!agent) return;
-    const understanding = await generateAgentUnderstanding(agent);
+    const understanding = await buildAgentUnderstanding(agent, {
+      onTranscript: async (transcript) => {
+        await prisma.agent.update({
+          where: { id: agentId },
+          data: { understandingTranscript: transcript as unknown as object },
+        });
+      },
+    });
     await prisma.agent.update({
       where: { id: agentId },
-      data: { understanding: understanding as unknown as object },
+      data: { understanding: understanding as unknown as object, understandingStatus: 'done' },
     });
   } catch (err) {
     console.error(`Understanding pipeline failed for agent ${agentId}:`, err);
+    await prisma.agent.update({
+      where: { id: agentId },
+      data: { understandingStatus: 'failed', understandingError: err instanceof Error ? err.message : String(err) },
+    }).catch(() => { /* swallow */ });
   }
 }
 
@@ -312,12 +331,11 @@ export async function understandAgent(req: Request, res: Response, next: NextFun
     const agent = await prisma.agent.findFirst({ where: { id: req.params.id, orgId } });
     if (!agent) throw new HttpError(404, 'Agent not found');
 
-    const understanding = await generateAgentUnderstanding(agent);
-    const updated = await prisma.agent.update({
-      where: { id: agent.id },
-      data: { understanding: understanding as unknown as object },
-    });
-    res.json(serializeAgent(updated));
+    // Interrogation is slow — runUnderstanding holds an in-flight lock so a
+    // concurrent trigger won't double-run. Fire-and-forget; client polls
+    // understandingStatus on the agent detail endpoint.
+    void runUnderstanding(agent.id);
+    res.status(202).json({ status: 'running', agentId: agent.id });
   } catch (err) {
     next(err);
   }
