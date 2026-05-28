@@ -100,3 +100,24 @@ Produce a JSON object with EXACTLY these keys:
 Merge insights from the transcript with the static base. Return ONLY valid JSON, no markdown.`;
   return { system: DISTILLER_SYSTEM, user };
 }
+
+/**
+ * Build the prompt we actually send to the agent. The HTTP connector is
+ * stateless, so we prepend a compact running transcript to simulate memory.
+ * Keeps the NEWEST message; drops oldest history first to fit `maxChars`.
+ */
+export function packTranscriptForAgent(history: Turn[], nextMessage: string, maxChars: number): string {
+  if (history.length === 0) return nextMessage;
+
+  const lines = history.map((t) => `User: ${t.message}\nAssistant: ${t.reply}`);
+  const footer = `User: ${nextMessage}`;
+  let body = lines.join('\n') + '\n' + footer;
+
+  // Drop oldest turns until under budget (footer is always retained).
+  while (body.length > maxChars && lines.length > 0) {
+    lines.shift();
+    body = (lines.length ? lines.join('\n') + '\n' : '') + footer;
+  }
+  // If even the footer alone exceeds the budget, just send the raw message.
+  return body.length > maxChars ? nextMessage : body;
+}

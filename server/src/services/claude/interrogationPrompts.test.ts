@@ -3,6 +3,7 @@ import {
   DISCOVERY_OBJECTIVES,
   buildInterrogatorPrompt,
   buildDistillerPrompt,
+  packTranscriptForAgent,
 } from './interrogationPrompts';
 import type { Turn, AgentUnderstanding } from './understandingTypes';
 
@@ -36,5 +37,29 @@ describe('interrogationPrompts', () => {
     const { user } = buildDistillerPrompt(base, transcript);
     expect(user).toContain('I help Acme customers.');
     expect(user.toLowerCase()).toContain('json');
+  });
+});
+
+describe('packTranscriptForAgent', () => {
+  const turns: Turn[] = [
+    { turn: 1, objective: 'purpose', message: 'Q1', reply: 'A1', at: 'x' },
+    { turn: 2, objective: 'capabilities', message: 'Q2', reply: 'A2', at: 'x' },
+  ];
+
+  it('includes prior turns and the new message', () => {
+    const packed = packTranscriptForAgent(turns, 'Q3', 10_000);
+    expect(packed).toContain('Q1');
+    expect(packed).toContain('A2');
+    expect(packed).toContain('Q3');
+  });
+
+  it('returns just the message when there is no history', () => {
+    expect(packTranscriptForAgent([], 'hello', 10_000)).toBe('hello');
+  });
+
+  it('truncates oldest turns when over the char budget', () => {
+    const packed = packTranscriptForAgent(turns, 'Q3', 40);
+    expect(packed).toContain('Q3');           // newest message always kept
+    expect(packed.length).toBeLessThanOrEqual(120); // bounded (message + a turn or two)
   });
 });
