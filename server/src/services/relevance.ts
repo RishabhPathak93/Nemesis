@@ -134,3 +134,18 @@ export function scoreProbeRelevance(
   }
   return out;
 }
+
+/** Map each probe's score → a ProbeBudget tier. Every probe gets a budget
+ *  (coverage floor: low tier = raw only, never dropped). */
+export function allocateBudget(
+  scores: Map<string, number>,
+  config: RelevanceConfig = RELEVANCE_CONFIG,
+): Map<string, ProbeBudget> {
+  const out = new Map<string, ProbeBudget>();
+  for (const [slug, score] of scores) {
+    const tier = score >= config.tierThresholds.high ? 'high'
+      : score >= config.tierThresholds.med ? 'med' : 'low';
+    out.set(slug, config.budgets[tier]);
+  }
+  return out;
+}
