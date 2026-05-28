@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { interrogateAgent, type InterrogationDeps } from './interrogation';
 import { sendToAgent } from '../agentConnector';
+import { encrypt } from '../../lib/crypto';
 import type { AgentUnderstanding } from './understandingTypes';
 import type { LlmClient } from '../../lib/llm';
 import type { Agent } from '@prisma/client';
@@ -33,7 +34,9 @@ describe('interrogateAgent against the live mock agent', () => {
     if (!online) { console.warn('mock agent offline on :4000 — skipping'); return; }
     const agent = {
       id: 'mock', orgId: 'o', name: 'Mock', agentType: 'customer_support',
-      endpointUrl: MOCK_URL, apiKey: '', requestFormat: { message: '{{prompt}}' },
+      // Real agents store an *encrypted* key; sendToAgent decrypts it. An empty
+      // raw string isn't valid ciphertext, so mirror production with encrypt(...).
+      endpointUrl: MOCK_URL, apiKey: encrypt('mock-key'), requestFormat: { message: '{{prompt}}' },
       responsePath: 'reply',
     } as unknown as Agent;
 
