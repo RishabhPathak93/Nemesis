@@ -36,7 +36,6 @@ import { executeTestRun } from '../services/testRunner';
 import { encrypt } from '../lib/crypto';
 import { freshSeed } from '../lib/prng';
 import { logger } from '../lib/logger';
-import { normalizeCategory } from '../services/relevance';
 import { relevanceConcentration } from '../services/relevanceMetrics';
 
 const MOCK_AGENT_URL = process.env.BENCH_AGENT_URL || 'http://localhost:4000/chat';
@@ -161,11 +160,11 @@ async function summariseRun(runId: string, engine: string, seed: string, wallTim
     select: { understanding: true },
   });
   const understanding = agentRow?.understanding as { risk_categories?: string[] } | null | undefined;
-  const topCategoryKeys: string[] = understanding?.risk_categories
-    ? [...new Set(understanding.risk_categories.map((c) => normalizeCategory(c)[0] ?? '').filter(Boolean))]
-    : [];
+  // Pass raw risk categories — relevanceConcentration is alias-aware and bridges
+  // them to the catalog's harm-dataset vocab itself.
+  const riskCategories = understanding?.risk_categories ?? [];
   const suiteCases = await prisma.testCase.findMany({ where: { suiteId }, select: { category: true } });
-  const concentration = relevanceConcentration(suiteCases, topCategoryKeys);
+  const concentration = relevanceConcentration(suiteCases, riskCategories);
 
   return {
     engine,

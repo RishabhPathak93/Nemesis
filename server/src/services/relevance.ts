@@ -34,7 +34,7 @@ export const RELEVANCE_CONFIG: RelevanceConfig = {
     effectiveness: num(process.env.RELEVANCE_W_EFFECTIVENESS, 0.10),
     severity: num(process.env.RELEVANCE_W_SEVERITY, 0.05),
   },
-  tierThresholds: { high: 0.66, med: 0.33 },
+  tierThresholds: { high: num(process.env.RELEVANCE_TIER_HIGH, 0.5), med: num(process.env.RELEVANCE_TIER_MED, 0.25) },
   budgets: {
     high: { tier: 'high', maxChainDepth: 2, strategyFamilies: ['encoding', 'framing'] },
     med: { tier: 'med', maxChainDepth: 1, strategyFamilies: ['framing'] },
@@ -64,6 +64,51 @@ export function categoryAffinity(probeCategory: string, understandingCategory: s
     }
   }
   return matches / Math.max(a.length, b.length);
+}
+
+/** Underscore key for alias lookup: "SENSITIVE_DATA_DISCLOSURE" → "sensitive_data_disclosure". */
+function aliasKey(understandingCategory: string): string {
+  return normalizeCategory(understandingCategory).join('_');
+}
+
+/**
+ * Security-taxonomy → probe-catalog vocabulary bridge. The seeded catalog is
+ * dominated by public harm-dataset categories ("harmful_behaviour",
+ * "Information Hazards", "Human-Chatbot Interaction Harms", …) while the agent's
+ * understanding speaks the security taxonomy (SENSITIVE_DATA_DISCLOSURE, …).
+ * Token-prefix affinity alone misses these; this map connects each taxonomy
+ * category to the normalized tokens the matching probes actually use.
+ */
+export const CATEGORY_ALIASES: Record<string, string[]> = {
+  prompt_injection: ['prompt', 'injection', 'direct', 'indirect'],
+  jailbreak: ['jailbreak', 'dan', 'direct'],
+  system_prompt_extraction: ['system', 'prompt', 'extraction', 'injection', 'leak'],
+  sensitive_data_disclosure: ['sensitive', 'data', 'disclosure', 'information', 'hazards', 'exfil', 'pii', 'privacy', 'leak'],
+  data_exfiltration: ['data', 'exfil', 'exfiltration', 'information', 'hazards', 'pii', 'leak'],
+  role_manipulation: ['role', 'manipulation', 'impersonation', 'jailbreak', 'interaction'],
+  harmful_content_generation: ['harmful', 'malicious', 'illegal', 'chemical', 'biological', 'harassment', 'bullying', 'discrimination', 'hateful', 'offensive', 'behaviour', 'behavior', 'cybercrime', 'intrusion'],
+  social_engineering: ['social', 'engineering', 'human', 'chatbot', 'interaction', 'manipulation', 'phishing'],
+  privilege_escalation: ['privilege', 'escalation', 'acl', 'bola', 'bfla', 'agent'],
+  guardrail_bypass: ['guardrail', 'bypass', 'jailbreak', 'direct', 'indirect'],
+  insecure_output: ['insecure', 'output', 'injection', 'xss'],
+  hallucination_exploitation: ['hallucination', 'misinformation', 'disinformation', 'misinfo'],
+  multi_turn_attack: ['multi', 'turn', 'crescendo'],
+  context_window_abuse: ['context', 'window', 'overflow'],
+};
+
+/**
+ * Alias-aware category relevance in [0,1]. Takes the max of (a) token-prefix
+ * affinity and (b) an alias-map bridge — a probe whose normalized tokens hit the
+ * taxonomy category's alias set scores ~0.9. Unmapped categories fall back to
+ * pure token affinity.
+ */
+export function categoryMatch(probeCategory: string, understandingCategory: string): number {
+  const direct = categoryAffinity(probeCategory, understandingCategory);
+  const aliasTokens = CATEGORY_ALIASES[aliasKey(understandingCategory)];
+  if (!aliasTokens) return direct;
+  const probeTokens = normalizeCategory(probeCategory);
+  const hit = probeTokens.some((t) => aliasTokens.includes(t));
+  return Math.max(direct, hit ? 0.9 : 0);
 }
 
 export interface ProbeSignal {
@@ -96,7 +141,7 @@ function applicabilityTokens(agentType: string): string[] {
 
 function maxAffinity(probeCategory: string, categories: string[]): number {
   let best = 0;
-  for (const c of categories) best = Math.max(best, categoryAffinity(probeCategory, c));
+  for (const c of categories) best = Math.max(best, categoryMatch(probeCategory, c));
   return best;
 }
 
@@ -123,7 +168,7 @@ export function scoreProbeRelevance(
     const vertical = p.applicability.some((a) => appTokens.includes(a.toLowerCase())) ? 1 : 0;
     let reaction = 0;
     for (const r of u?.probe_reactions ?? []) {
-      reaction = Math.max(reaction, categoryAffinity(p.category, r.type) * (REACTION_WEIGHT[r.severity_hint] ?? 0.3));
+      reaction = Math.max(reaction, categoryMatch(p.category, r.type) * (REACTION_WEIGHT[r.severity_hint] ?? 0.3));
     }
     const normCatKey = normalizeCategory(p.category)[0] ?? '';
     const effectiveness = input.categoryEffectiveness.get(normCatKey) ?? 0;
