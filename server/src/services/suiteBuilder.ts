@@ -203,18 +203,61 @@ async function buildSuiteCartesian(
   // this agent. Best-effort — on any failure we fall back to uniform enumeration.
   let probeBudgets: Map<string, import('./relevance').ProbeBudget> | undefined;
   try {
-    const { buildProbeBudgets } = await import('./relevance');
+    const {
+      buildProbeBudgets, scoreProbeRelevance, allocateBudget,
+      applyCategoryWeights, resolveCategoryWeights, RELEVANCE_CONFIG,
+    } = await import('./relevance');
     const { categoryEffectiveness } = await import('./learning/knowledgeBase');
     const candidates = await prisma.probe.findMany({
       where: { enabled: true },
       select: { slug: true, category: true, severity: true, applicability: true },
     });
-    probeBudgets = buildProbeBudgets(candidates, {
+    const relevanceInput = {
       understanding: (agent.understanding as unknown as import('./claude/understandingTypes').AgentUnderstanding) ?? null,
       agentType: agent.agentType,
       sensitiveDataScope: agent.sensitiveDataScope,
       categoryEffectiveness: await categoryEffectiveness(agent.orgId),
-    });
+    };
+
+    if (RELEVANCE_CONFIG.llmRerankEnabled) {
+      // LLM re-rank path: compute base scores, blend with LLM-assigned weights, allocate.
+      const { getLlmClient, PIPELINE_TIMEOUTS } = await import('../lib/llm');
+      const baseScores = scoreProbeRelevance(candidates, relevanceInput);
+
+      // Distinct normalized first-token categories among candidates.
+      const { normalizeCategory } = await import('./relevance');
+      const categorySet = new Set<string>();
+      for (const c of candidates) {
+        const tok = normalizeCategory(c.category)[0];
+        if (tok) categorySet.add(tok);
+      }
+
+      const client = await getLlmClient(agent.orgId);
+      const agentRow = agent as unknown as Record<string, unknown>;
+      const weights = await resolveCategoryWeights({
+        agentId: agent.id,
+        understanding: agent.understanding,
+        categories: [...categorySet],
+        client,
+        cache: {
+          weights: agentRow['relevanceWeights'] ?? null,
+          hash: (agentRow['relevanceWeightsHash'] as string | null) ?? null,
+        },
+        persist: async (w, h) => {
+          await prisma.agent.update({
+            where: { id: agent.id },
+            data: { relevanceWeights: w, relevanceWeightsHash: h } as Record<string, unknown>,
+          });
+        },
+        timeoutMs: PIPELINE_TIMEOUTS.understanding,
+      });
+
+      const blended = applyCategoryWeights(baseScores, candidates, weights);
+      probeBudgets = allocateBudget(blended);
+    } else {
+      // Default deterministic path (flag off → identical to previous behavior).
+      probeBudgets = buildProbeBudgets(candidates, relevanceInput);
+    }
   } catch (err) {
     console.warn('[suite] relevance budgeting failed; using uniform enumeration:', err);
     probeBudgets = undefined;
