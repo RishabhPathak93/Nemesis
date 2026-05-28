@@ -19,6 +19,7 @@ import type { Probe } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { env } from '../lib/env';
 import { listSlugsByFamily } from '../securityEngine/strategies/registry';
+import type { ProbeBudget } from './relevance';
 
 export interface EnumeratedCase {
   /** Deterministic externalId. Used as TestCase.externalId. */
@@ -73,6 +74,12 @@ export interface EnumerateOptions {
    * fake iterator to avoid spinning up a DB.
    */
   probeStream?: AsyncIterable<Probe>;
+  /**
+   * Per-probe budget (keyed by probe slug) from the relevance allocator. When a
+   * probe has a budget, its maxChainDepth + strategyFamilies override the global
+   * chainDepth/includes for that probe. Probes absent from the map use globals.
+   */
+  probeBudgets?: Map<string, ProbeBudget>;
 }
 
 const DEFAULT_LANGUAGES = ['zu', 'xh', 'mt', 'ay']; // Zulu, Xhosa, Maltese, Aymara — low-resource
@@ -141,27 +148,37 @@ export async function* enumerateTestCases(
         };
       };
 
-      // 0-chain: raw probe
+      // Per-probe budget overrides (relevance targeting). Falls back to globals.
+      const budget = options.probeBudgets?.get(probe.slug);
+      const effDepth = budget ? budget.maxChainDepth : chainDepth;
+      const effEncodings = budget ? budget.strategyFamilies.includes('encoding') : includeEncodings;
+      const effFramings = budget ? budget.strategyFamilies.includes('framing') : includeFramings;
+
+      // Resolve per-probe strategy lists (may differ from global lists).
+      const probeEncodings = effEncodings ? encodings : [];
+      const probeFramings = effFramings ? framings : [];
+
+      // 0-chain: raw probe — always emitted (coverage floor, never gated on budget)
       yield make([]);
 
-      if (chainDepth >= 1) {
-        for (const e of encodings) yield make([e]);
-        for (const f of framings) yield make([f]);
+      if (effDepth >= 1) {
+        for (const e of probeEncodings) yield make([e]);
+        for (const f of probeFramings) yield make([f]);
       }
 
-      if (chainDepth >= 2) {
+      if (effDepth >= 2) {
         // (encoding, framing) pairs — order matters; encoding inside framing
         // means the model sees framing as outer wrapper around the encoded payload.
-        for (const e of encodings) {
-          for (const f of framings) yield make([e, f]);
+        for (const e of probeEncodings) {
+          for (const f of probeFramings) yield make([e, f]);
         }
       }
 
-      if (chainDepth >= 3) {
+      if (effDepth >= 3) {
         // (encoding, encoding, framing) — chain two encodings first
-        for (let a = 0; a < encodings.length; a++) {
-          for (let b = a + 1; b < encodings.length; b++) {
-            for (const f of framings) yield make([encodings[a], encodings[b], f]);
+        for (let a = 0; a < probeEncodings.length; a++) {
+          for (let b = a + 1; b < probeEncodings.length; b++) {
+            for (const f of probeFramings) yield make([probeEncodings[a], probeEncodings[b], f]);
           }
         }
       }
