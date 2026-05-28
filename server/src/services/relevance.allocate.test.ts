@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { allocateBudget } from './relevance';
 
 describe('allocateBudget', () => {
-  const scores = new Map([['p.high', 0.9], ['p.med', 0.5], ['p.low', 0.1]]);
+  // Scores chosen relative to the tuned default thresholds (high 0.5, med 0.25).
+  const scores = new Map([['p.high', 0.9], ['p.med', 0.35], ['p.low', 0.1]]);
 
   it('assigns tiers by threshold', () => {
     const b = allocateBudget(scores);
