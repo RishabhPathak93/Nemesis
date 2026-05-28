@@ -149,3 +149,10 @@ export function allocateBudget(
   }
   return out;
 }
+
+/** Convenience: score then allocate, returning the budget map the enumerator wants. */
+export function buildProbeBudgets(
+  probes: ProbeSignal[], input: RelevanceInput, config: RelevanceConfig = RELEVANCE_CONFIG,
+): Map<string, ProbeBudget> {
+  return allocateBudget(scoreProbeRelevance(probes, input, config), config);
+}

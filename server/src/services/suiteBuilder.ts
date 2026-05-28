@@ -199,8 +199,30 @@ async function buildSuiteCartesian(
     strategyChain: string[];
   }[] = [];
 
+  // Relevance targeting: budget the cartesian expansion toward probes that fit
+  // this agent. Best-effort — on any failure we fall back to uniform enumeration.
+  let probeBudgets: Map<string, import('./relevance').ProbeBudget> | undefined;
+  try {
+    const { buildProbeBudgets } = await import('./relevance');
+    const { categoryEffectiveness } = await import('./learning/knowledgeBase');
+    const candidates = await prisma.probe.findMany({
+      where: { enabled: true },
+      select: { slug: true, category: true, severity: true, applicability: true },
+    });
+    probeBudgets = buildProbeBudgets(candidates, {
+      understanding: (agent.understanding as unknown as import('./claude/understandingTypes').AgentUnderstanding) ?? null,
+      agentType: agent.agentType,
+      sensitiveDataScope: agent.sensitiveDataScope,
+      categoryEffectiveness: await categoryEffectiveness(agent.orgId),
+    });
+  } catch (err) {
+    console.warn('[suite] relevance budgeting failed; using uniform enumeration:', err);
+    probeBudgets = undefined;
+  }
+
   for await (const ec of enumerateTestCases({
     verticalPackSlug: options.verticalPackSlug,
+    probeBudgets,
     ...options.cartesianOptions,
   })) {
     batch.push({
