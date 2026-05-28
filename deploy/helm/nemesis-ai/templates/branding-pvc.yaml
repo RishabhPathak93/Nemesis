@@ -1,0 +1,17 @@
+{{- if .Values.persistence.branding.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nemesis-ai.fullname" . }}-branding
+  labels:
+    {{- include "nemesis-ai.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.branding.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.branding.size }}
+  {{- if .Values.persistence.branding.storageClass }}
+  storageClassName: {{ .Values.persistence.branding.storageClass | quote }}
+  {{- end }}
+{{- end }}

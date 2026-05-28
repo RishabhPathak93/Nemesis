@@ -1,0 +1,73 @@
+# Example values overrides for a production deployment with externally-managed
+# Postgres / Redis (the recommended pattern). Copy as values.yaml.
+#
+#   helm install cv ./deploy/helm/nemesis-ai -f values-production.yaml.example
+
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+
+# Operator created `nemesis-ai-db` and `nemesis-ai-redis` secrets pointing at
+# managed services (RDS, Aurora, ElastiCache, Memorystore, etc.).
+externalServices:
+  databaseUrlSecret: nemesis-ai-db
+  databaseUrlKey: DATABASE_URL
+  redisUrlSecret: nemesis-ai-redis
+  redisUrlKey: REDIS_URL
+
+replicaCount:
+  server: 3
+  client: 3
+
+resources:
+  server:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: 2000m, memory: 2Gi }
+  client:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits:   { cpu: 200m, memory: 256Mi }
+
+features:
+  rateLimitRedis: "true"
+  detectorPipeline: "true"
+  cookieSecure: "true"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: nemesis-ai.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: server
+        - path: /
+          pathType: Prefix
+          service: client
+  tls:
+    - hosts: [nemesis-ai.example.com]
+      secretName: nemesis-ai-tls
+
+probes:
+  readiness:
+    httpHeaders:
+      - name: X-Health-Token
+        value: ""   # injected from nemesis-ai-secrets/HEALTH_TOKEN
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+networkPolicy:
+  enabled: true
+  egressAllowedPorts: [443, 5432, 6379]
+
+observability:
+  prometheusServiceMonitor:
+    enabled: true
+    interval: 30s
+    metricsToken: ""

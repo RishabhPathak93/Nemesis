@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="cir-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="url(#cir-bg)"/>
+  <path d="M14 14 H22 V22 H30 V14 H38 V22 H46 V14 H50"
+        stroke="#4f46e5" stroke-width="1.4" fill="none" opacity="0.5"/>
+  <path d="M14 50 H22 V42 H30 V50 H38 V42 H46 V50 H50"
+        stroke="#4f46e5" stroke-width="1.4" fill="none" opacity="0.5"/>
+  <circle cx="50" cy="14" r="1.5" fill="#a5b4fc"/>
+  <circle cx="50" cy="50" r="1.5" fill="#a5b4fc"/>
+  <circle cx="14" cy="14" r="1.5" fill="#a5b4fc"/>
+  <circle cx="14" cy="50" r="1.5" fill="#a5b4fc"/>
+  <path d="M22 44 V20 L42 44 V20"
+        stroke="#ffffff" stroke-width="4.5" stroke-linecap="square" stroke-linejoin="miter" fill="none"/>
+  <circle cx="22" cy="20" r="2.2" fill="#fb7185"/>
+  <circle cx="42" cy="20" r="2.2" fill="#fb7185"/>
+  <circle cx="22" cy="44" r="2.2" fill="#fb7185"/>
+  <circle cx="42" cy="44" r="2.2" fill="#fb7185"/>
+</svg>

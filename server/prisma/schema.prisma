@@ -1,0 +1,1033 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+/// Outcome of a single oracle evaluation. The DB-level enum prevents
+/// typos slipping into the verdict column (previously a String).
+enum Verdict {
+  pass
+  fail
+  partial
+  error
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  password            String
+  name                String
+  role                Role      @default(ANALYST)
+  orgId               String
+  org                 Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  // Lifecycle
+  isActive            Boolean   @default(true)
+  deactivatedAt       DateTime?
+  emailVerifiedAt     DateTime?
+  lastLoginAt         DateTime?
+  failedLoginCount    Int       @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  // MFA
+  mfaEnabled          Boolean   @default(false)
+  mfaSecret           String?   // encrypted
+  mfaBackupCodes      String[]  @default([])  // bcrypt hashes; popped on use
+  // Force-logout signal — bumped on password change / admin-revoke
+  tokenVersion        Int       @default(0)
+  // Relations
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  invitesSent         Invite[]  @relation("InvitesSent")
+  apiKeysCreated      ApiKey[]  @relation("ApiKeysCreated")
+  sharesCreated       Report[]  @relation("ReportSharesCreated")
+  // v2.0 — multi-org membership; User.orgId stays as default/legacy primary.
+  memberships         Membership[] @relation("UserMemberships")
+  createdAt           DateTime  @default(now())
+
+  @@index([orgId, isActive])
+}
+
+model Org {
+  id                 String   @id @default(cuid())
+  name               String
+  // Legacy — kept for backward compatibility, used as fallback if llmProvider is null
+  anthropicApiKey    String?  // encrypted
+  // New unified LLM config — overrides legacy when set
+  llmProvider        String?  // "anthropic" | "openai" | "openai_compatible" | "ollama"
+  llmApiKey          String?  // encrypted
+  llmModel           String?  // e.g. "gpt-4o", "claude-opus-4-7", "llama3.1:8b"
+  llmBaseUrl         String?  // for openai_compatible / ollama
+  notifyOnComplete   Boolean  @default(true)
+  notifyOnCritical   Boolean  @default(true)
+  // Adaptive features
+  enableLearning     Boolean  @default(true)
+  enableResearch     Boolean  @default(false)
+  searchProvider     String?  // "tavily" | "brave" | null
+  searchApiKey       String?  // encrypted
+  // Enterprise: MFA enforcement
+  requireMfa         Boolean  @default(false)
+  mfaEnforcedAt      DateTime?  // start of 14-day grace window
+  users              User[]
+  agents             Agent[]
+  invites            Invite[]
+  researchSnapshots  ResearchSnapshot[]
+  auditLogs          AuditLog[]
+  apiKeys            ApiKey[]
+  brandingProfile    BrandingProfile?
+  // v1.5/v2.0 back-relations
+  complianceEvidence ComplianceEvidence[]
+  kmsKey             KmsKey?
+  siemForwarders     SiemForwarder[]
+  scimEndpoint       ScimEndpoint?
+  permissionGrants   PermissionGrant[]
+  memberships        Membership[]
+  disabledProbeIds   String[] @default([])  // org-level probe disable list (SE-1)
+  // v1.3 / v1.5 back-relations
+  webhooks               Webhook[]
+  notificationChannels   NotificationChannel[]
+  scheduledReports       ScheduledReport[]
+  samlConfig             SamlConfig?
+  oidcConfig             OidcConfig?
+  smtpConfig             SmtpConfig?
+  orgPolicy              OrgPolicy?
+  orgUsage               OrgUsage?
+  impersonationSessions  ImpersonationSession[]
+  dataSubjectRequests    DataSubjectRequest[]
+  createdAt          DateTime @default(now())
+}
+
+/// Org branding for reports (v1.3 increment 1).
+/// Logo binary lives on the filesystem at CV_BRANDING_DIR; only metadata is in DB.
+model BrandingProfile {
+  id              String   @id @default(cuid())
+  orgId           String   @unique
+  org             Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  primaryColor    String?  // "#4f46e5"
+  logoMime        String?  // "image/png" | "image/svg+xml" | "image/jpeg"
+  logoSizeBytes   Int?
+  logoStoragePath String?  // relative path inside CV_BRANDING_DIR
+  logoChecksum    String?  // sha256 — for cache busting
+  updatedAt       DateTime @updatedAt
+  updatedById     String?
+}
+
+// ============================================================================
+// Security Engine v2 — SE-1 foundation (Probe library + compliance heatmap)
+// ============================================================================
+
+/// Canonical adversarial prompt definition. Versioned so we can update wording
+/// without breaking historical runs. Sourced from garak/promptfoo/promptmap/pyrit/art
+/// or authored as `cortexview` (learned patterns + research findings).
+model Probe {
+  id                     String   @id @default(cuid())
+  slug                   String   @unique  // e.g. "garak.dan.dan_11", "promptfoo.bola"
+  source                 String              // "garak"|"promptfoo"|"promptmap"|"pyrit"|"art"|"cortexview"
+  version                Int      @default(1)
+  category               String              // "jailbreak"|"prompt_injection"|"data_exfil"|"toxicity"|...
+  subcategory            String?
+  severity               String              // "low"|"medium"|"high"|"critical"
+  title                  String
+  description            String
+  seedPayload            String
+  expectedFailIndicators String[] @default([])
+  expectedPassIndicators String[] @default([])
+  applicability          String[] @default([])  // ["chatbot","rag","agent","tool_use"]
+  defaultDetectorIds     String[] @default([])
+  defaultStrategies      String[] @default([])
+  enabled                Boolean  @default(true)
+  metadata               Json?
+  complianceMappings     ProbeComplianceMapping[]
+  datasetItems           DatasetItem[]
+  testCases              TestCase[]
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([source, category])
+  @@index([severity])
+  @@index([enabled])
+}
+
+/// A reusable prompt transform (encoder, framing, multilingual). Composable.
+model Strategy {
+  id                String   @id @default(cuid())
+  slug              String   @unique  // "encoding.base64", "multi_turn.crescendo"
+  family            String              // "encoding"|"multilingual"|"framing"|"multi_turn"|"adversarial_suffix"|"composite"
+  kind              String              // "deterministic" | "llm_assisted"
+  title             String
+  description       String
+  implFn            String?             // function name in src/securityEngine/strategies/
+  orchestratorClass String?             // for llm_assisted
+  paramSchema       Json?
+  defaultParams     Json?
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  @@index([family, enabled])
+}
+
+/// Detector — verdict step in the pipeline.
+model Detector {
+  id          String   @id @default(cuid())
+  slug        String   @unique  // "regex.pii_email", "classifier.toxicity", "llm_judge.cv_evaluator"
+  kind        String              // "regex"|"signature"|"classifier"|"llm_judge"
+  title       String
+  description String
+  config      Json
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([kind, enabled])
+}
+
+/// Snapshot of an external dataset (HarmBench, BeaverTails, DoNotAnswer, etc.).
+/// Cached server-side. Items optionally materialise as Probe rows.
+model DatasetSnapshot {
+  id         String   @id @default(cuid())
+  source     String              // "harmbench"|"advbench"|"beavertails"|...
+  version    String
+  fetchedAt  DateTime @default(now())
+  itemCount  Int
+  licenseUrl String?
+  citation   String?
+  items      DatasetItem[]
+
+  @@unique([source, version])
+}
+
+model DatasetItem {
+  id                String   @id @default(cuid())
+  datasetSnapshotId String
+  dataset           DatasetSnapshot @relation(fields: [datasetSnapshotId], references: [id], onDelete: Cascade)
+  externalId        String              // upstream's identifier
+  payload           String
+  expectedHarm      String?
+  category          String?
+  metadata          Json?
+  probeId           String?
+  probe             Probe?   @relation(fields: [probeId], references: [id], onDelete: SetNull)
+
+  @@unique([datasetSnapshotId, externalId])
+  @@index([datasetSnapshotId, category])
+}
+
+/// Compliance heatmap: probe → framework control.
+model ProbeComplianceMapping {
+  id        String   @id @default(cuid())
+  probeId   String
+  probe     Probe    @relation(fields: [probeId], references: [id], onDelete: Cascade)
+  framework String              // "OWASP_LLM_TOP10"|"MITRE_ATLAS"|"NIST_AI_RMF"|"EU_AI_ACT"|"OWASP_API_TOP10"
+  controlId String              // "LLM01"|"AML.T0040"|"GOVERN-1.4"|"Art_15"
+  notes     String?
+
+  @@unique([probeId, framework, controlId])
+  @@index([framework, controlId])
+}
+
+/// Vertical pack — bundle of probes scoped to an industry or scenario.
+model VerticalPack {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique  // "medical","financial","insurance","pharmacy","ecommerce","agent_with_tools","rag_chatbot"
+  title                 String
+  description           String
+  probeIds              String[] @default([])
+  recommendedStrategies String[] @default([])
+  enabled               Boolean  @default(true)
+  createdAt             DateTime @default(now())
+}
+
+// ============================================================================
+// v1.3 increments 2-5 + v1.4 + v1.5 — outbound integrations, ops, compliance
+// ============================================================================
+
+/// Outbound webhook config (v1.3 inc 2). One row per webhook configured by an org.
+model Webhook {
+  id             String   @id @default(cuid())
+  orgId          String
+  org            Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name           String
+  url            String                                // https-only in prod (validated)
+  secret         String                                // encrypted via crypto.ts
+  // v2.0 — rotation overlap. When the operator rotates, the previous secret
+  // stays valid for `secretPreviousExpiresAt`; the worker emits BOTH
+  // X-Cortexview-Signature (current) and X-Cortexview-Signature-Previous (old)
+  // until the window expires.
+  secretPrevious          String?
+  secretPreviousExpiresAt DateTime?
+  events         String[] @default([])                 // ["report.completed","run.failed",…]
+  enabled        Boolean  @default(true)
+  // v1.4 — soft-delete; retention sweeper hard-deletes after the window.
+  deletedAt      DateTime?
+  createdById    String
+  createdAt      DateTime @default(now())
+  lastDeliveryAt DateTime?
+  failureCount   Int      @default(0)
+  deliveries     WebhookDelivery[]
+
+  @@index([orgId, enabled])
+}
+
+model WebhookDelivery {
+  id              String   @id @default(cuid())
+  webhookId       String
+  webhook         Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  eventId         String                                // also Idempotency-Key on the wire
+  eventType       String
+  payload         Json
+  status          String   @default("PENDING")          // PENDING|SUCCEEDED|FAILED|DEAD_LETTERED
+  attempts        Int      @default(0)
+  nextAttemptAt   DateTime?
+  responseStatus  Int?
+  responseHeaders Json?
+  responseBody    String?                               // truncated to 2 KB
+  errorMessage    String?
+  deliveredAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  @@unique([webhookId, eventId])                        // idempotency
+  @@index([status, nextAttemptAt])
+  @@index([webhookId, createdAt])
+}
+
+/// Org notification channels (v1.3 inc 3a) — email recipients, Slack/Teams incoming-webhook.
+model NotificationChannel {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind        String                                    // "EMAIL" | "SLACK" | "TEAMS" | "WEBHOOK" | "JIRA" | "SERVICENOW"
+  name        String
+  configEnc   String                                    // encrypted JSON; shape varies by kind
+  enabled     Boolean  @default(true)
+  // v1.4 — soft-delete
+  deletedAt   DateTime?
+  // v2.0 — per-channel rate limit (tokens per window). null = unlimited.
+  rateLimitPerMinute Int?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, kind, enabled])
+}
+
+/// Scheduled report runs (v1.3 inc 3b). cron expression per scope+agent, channels[] fans out.
+model ScheduledReport {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  scope       String   @default("AGENT")                // ORG | AGENT | DIGEST
+  agentId     String?
+  cronExpr    String                                    // validated server-side
+  timezone    String   @default("UTC")
+  channels    String[] @default([])                     // NotificationChannel ids
+  format      String   @default("HTML")                 // HTML | PDF | DIGEST
+  // v2.0 — custom report sections appended to the rendered output
+  customSections Json?
+  enabled     Boolean  @default(true)
+  // v1.4 — soft-delete
+  deletedAt   DateTime?
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  createdById String
+  runs        ScheduledReportRun[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orgId, enabled, nextRunAt])
+}
+
+model ScheduledReportRun {
+  id                String   @id @default(cuid())
+  scheduledReportId String
+  scheduledReport   ScheduledReport @relation(fields: [scheduledReportId], references: [id], onDelete: Cascade)
+  status            String   @default("PENDING")        // PENDING|SUCCEEDED|FAILED|DEAD_LETTERED
+  startedAt         DateTime @default(now())
+  completedAt       DateTime?
+  reportId          String?
+  errorMessage      String?
+  channelResults    Json?
+
+  @@index([scheduledReportId, startedAt])
+}
+
+/// SAML SSO config per org (v1.3 inc 4). SP-side metadata + IdP cert anchor.
+model SamlConfig {
+  id                String   @id @default(cuid())
+  orgId             String   @unique
+  org               Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enabled           Boolean  @default(false)
+  idpEntityId       String
+  idpSsoUrl         String
+  idpSloUrl         String?
+  idpCertificate    String                                // PEM
+  idpCertificate2   String?
+  spEntityId        String                                // ${CLIENT_ORIGIN}/api/auth/saml/{slug}
+  spAcsUrl          String
+  emailDomains      String[] @default([])                 // for email→org discovery
+  attrEmail         String   @default("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
+  attrName          String   @default("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")
+  jitProvision      Boolean  @default(true)
+  defaultRole       Role     @default(VIEWER)
+  allowIdpInitiated Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  samlSessions      SamlSession[]
+
+  @@index([enabled])
+}
+
+model SamlSession {
+  id            String   @id @default(cuid())            // doubles as RelayState
+  samlConfigId  String
+  samlConfig    SamlConfig @relation(fields: [samlConfigId], references: [id], onDelete: Cascade)
+  requestId     String   @unique
+  redirectAfter String?
+  createdAt     DateTime @default(now())
+  consumedAt    DateTime?
+  ip            String?
+  userAgent     String?
+
+  @@index([samlConfigId, createdAt])
+}
+
+/// OIDC config per org (v2.0). Sits next to SamlConfig — orgs can choose either
+/// or both for federation. Stores the discovery URL + client credentials.
+model OidcConfig {
+  id              String   @id @default(cuid())
+  orgId           String   @unique
+  org             Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enabled         Boolean  @default(false)
+  // OpenID Provider discovery — the issuer URL (no trailing slash).
+  issuerUrl       String
+  clientId        String
+  clientSecret    String                                // encrypted via crypto.ts
+  // Comma-separated scopes; "openid profile email" is the default.
+  scopes          String[] @default(["openid", "profile", "email"])
+  // Email-domain → org discovery for "Continue with SSO" on login.
+  emailDomains    String[] @default([])
+  // JIT-provision unknown users into this org.
+  jitProvision    Boolean  @default(true)
+  defaultRole     Role     @default(VIEWER)
+  // Map raw OIDC claims → CortexView fields (most operators leave defaults).
+  claimEmail      String   @default("email")
+  claimName       String   @default("name")
+  // Track ongoing PKCE / nonce sessions for CSRF / replay defence.
+  oidcSessions    OidcSession[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model OidcSession {
+  id            String   @id @default(cuid())            // doubles as state
+  oidcConfigId  String
+  oidcConfig    OidcConfig @relation(fields: [oidcConfigId], references: [id], onDelete: Cascade)
+  codeVerifier  String                                    // PKCE
+  nonce         String
+  redirectAfter String?
+  createdAt     DateTime @default(now())
+  consumedAt    DateTime?
+  ip            String?
+  userAgent     String?
+
+  @@index([oidcConfigId, createdAt])
+}
+
+/// WebAuthn (passkey) credential per user (v2.0). Adds hardware-key MFA on top
+/// of TOTP. A user can have multiple credentials (phone + laptop).
+model WebauthnCredential {
+  id            String   @id @default(cuid())
+  userId        String
+  credentialId  Bytes    @unique                         // raw credential ID bytes
+  publicKey     Bytes                                    // CBOR-encoded COSE pubkey
+  counter       BigInt   @default(0)                     // signature counter (replay defence)
+  deviceLabel   String                                   // "Yubikey", "iPhone Touch ID", etc.
+  transports    String[] @default([])                    // "usb"|"nfc"|"ble"|"internal"
+  backupEligible Boolean @default(false)                 // synced across devices?
+  backupState    Boolean @default(false)                 // currently synced?
+  lastUsedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Transient WebAuthn challenges per user. We persist server-side so we can
+/// reject reuse (CSRF / replay). Cleared on consumption or expiry.
+model WebauthnChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  challenge String                                       // base64url
+  purpose   String                                       // "registration" | "authentication"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model SamlAssertionSeen {
+  id           String   @id @default(cuid())
+  orgId        String
+  assertionId  String   @unique
+  notOnOrAfter DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([orgId, notOnOrAfter])
+}
+
+/// Multi-turn conversation memory (SE-4). Carries Crescendo / TAP / GOAT state per test run.
+model ConversationTurn {
+  id         String   @id @default(cuid())
+  testRunId  String?                                     // null for ad-hoc dry-runs
+  threadId   String                                      // groups turns of one conversation
+  turn       Int                                         // 1-indexed turn number
+  role       String                                      // "attacker" | "target" | "judge"
+  content    String
+  metadata   Json?                                       // strategy params, judge verdict, etc.
+  createdAt  DateTime @default(now())
+
+  @@index([threadId, turn])
+  @@index([testRunId])
+}
+
+/// IP allowlist + access policy per org (v1.5).
+model OrgPolicy {
+  id               String   @id @default(cuid())
+  orgId            String   @unique
+  org              Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ipAllowlist      String[] @default([])                 // CIDR strings
+  ssoOnly          Boolean  @default(false)
+  allowedCountries String[] @default([])                 // ISO codes; needs MMDB
+  updatedById      String?
+  updatedAt        DateTime @updatedAt
+}
+
+/// Per-org usage counters + caps (v1.5). Counters incremented live; caps null = unlimited.
+model OrgUsage {
+  id                       String   @id @default(cuid())
+  orgId                    String   @unique
+  org                      Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  testRunsThisMonth        Int      @default(0)
+  agentCount               Int      @default(0)
+  apiKeyCount              Int      @default(0)
+  scheduledReportCount     Int      @default(0)
+  // Caps; null = unlimited.
+  capTestRunsPerMonth      Int?
+  capAgents                Int?
+  capApiKeys               Int?
+  capScheduledReports      Int?
+  resetAt                  DateTime @default(now())      // last monthly reset
+  updatedAt                DateTime @updatedAt
+}
+
+/// Support / admin impersonation session (v1.5). Audit-traced; time-bounded.
+model ImpersonationSession {
+  id            String    @id @default(cuid())
+  orgId         String
+  org           Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  adminId       String
+  targetUserId  String
+  reason        String
+  expiresAt     DateTime
+  endedAt       DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([orgId, expiresAt])
+  @@index([targetUserId, createdAt])
+}
+
+/// GDPR data subject request (v1.5).
+model DataSubjectRequest {
+  id           String    @id @default(cuid())
+  orgId        String
+  org          Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId       String                                    // subject of the request
+  type         String                                    // "EXPORT" | "DELETE"
+  status       String    @default("PENDING")             // PENDING|APPROVED|REJECTED|COMPLETED|FAILED
+  requestedAt  DateTime  @default(now())
+  approvedAt   DateTime?
+  approvedById String?
+  completedAt  DateTime?
+  downloadPath String?
+  errorMessage String?
+
+  @@index([orgId, status])
+  @@index([userId])
+}
+
+/// Compliance evidence bundles (v1.5). Nightly cron snapshots access reviews,
+/// change-management evidence, and uptime stats into tarballs auditors download.
+model ComplianceEvidence {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind        String                                    // "ACCESS_REVIEW" | "CHANGE_LOG" | "UPTIME"
+  periodStart DateTime
+  periodEnd   DateTime
+  contentPath String                                    // filesystem path inside CV_COMPLIANCE_DIR
+  generatedAt DateTime @default(now())
+
+  @@index([orgId, kind, periodEnd])
+}
+
+/// Per-org data-encryption key (v2.0 KMS envelope). Each orgId gets a wrapped
+/// DEK; secrets stored encrypted-with-DEK in their existing columns. The DEK
+/// itself is wrapped with `ENCRYPTION_KEY` (the operator master) until KMS
+/// providers (Vault / AWS KMS / GCP KMS) plug in.
+model KmsKey {
+  id           String   @id @default(cuid())
+  orgId        String   @unique
+  org          Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  // The wrapped DEK (master-encrypted random 32 bytes). Format: crypto.ts ciphertext.
+  wrappedDek   String
+  algorithm    String   @default("aes-256-gcm")
+  rotatedAt    DateTime @default(now())
+  // When the operator integrates a real KMS, this carries the provider key id.
+  providerKeyId String?
+  createdAt    DateTime @default(now())
+}
+
+/// SIEM forwarder per org (v2.0). Streams every audit-log row to an external
+/// receiver. Re-uses the webhook delivery infra; this row carries the kind.
+model SiemForwarder {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind        String                                    // "SPLUNK_HEC" | "DATADOG" | "SYSLOG_HTTP"
+  name        String
+  configEnc   String                                    // encrypted JSON
+  enabled     Boolean  @default(true)
+  // Filter: which audit `action` prefixes to forward (empty = all).
+  actionFilter String[] @default([])
+  lastForwardedAt DateTime?
+  failureCount    Int   @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, enabled])
+}
+
+/// SCIM 2.0 endpoint config (v2.0). One row per org; auth is via a long-lived
+/// bearer token (kept server-side, hashed) the IdP carries.
+model ScimEndpoint {
+  id           String   @id @default(cuid())
+  orgId        String   @unique
+  org          Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enabled      Boolean  @default(false)
+  bearerHash   String                                   // sha256 of the bearer token
+  bearerPrefix String                                   // first 8 chars for the UI ("scim_xxxxxxxx")
+  defaultRole  Role     @default(VIEWER)
+  // Whether de-provisioning is allowed (some orgs prefer manual offboarding).
+  allowDeprovision Boolean @default(true)
+  lastSyncAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Custom-permission overrides per role (v2.0). Empty = the role's defaults
+/// from `lib/permissions.ts` apply. Rows in this table OVERRIDE the defaults
+/// for the given (role, permission) pair within an org.
+model PermissionGrant {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  role        Role
+  permission  String                                    // matches Permission union in lib/permissions.ts
+  granted     Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orgId, role, permission])
+  @@index([orgId, role])
+}
+
+/// Multi-org membership (v2.0). When set, supersedes User.orgId. Allows a
+/// single user to belong to multiple orgs with potentially different roles
+/// in each. Backwards-compat: User.orgId stays as the "primary" org for legacy
+/// queries during the migration window.
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  role      Role
+  isDefault Boolean  @default(false)                    // the org the user lands in by default
+  createdAt DateTime @default(now())
+
+  @@unique([userId, orgId])
+  @@index([orgId, role])
+}
+
+/// Privacy / ToS / DPA acceptance — version-tracked (v1.5).
+model PrivacyAcceptance {
+  id          String   @id @default(cuid())
+  userId      String
+  docType     String                                     // "TOS" | "PRIVACY" | "DPA"
+  version     String
+  acceptedAt  DateTime @default(now())
+  ip          String?
+
+  @@unique([userId, docType, version])
+  @@index([userId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  orgId       String
+  org         Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  email       String
+  role        Role      @default(ANALYST)
+  tokenHash   String?   @unique  // sha256 of plaintext invite token
+  expiresAt   DateTime?
+  acceptedAt  DateTime?
+  invitedById String?
+  invitedBy   User?     @relation("InvitesSent", fields: [invitedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique  // sha256(rawToken)
+  family       String              // rotation family — replay revokes the whole family
+  issuedAt     DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  userAgent    String?
+  ip           String?
+
+  @@index([userId, revokedAt])
+  @@index([family])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String              // logged even when no user exists (enumeration sentinel)
+  userId    String?
+  ip        String
+  userAgent String?
+  success   Boolean
+  reason    String?             // "bad_password" | "locked" | "mfa_failed" | "inactive"
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actorId    String?  // null for system / unauthenticated
+  actorType  String   // "user" | "api_key" | "system" | "share_link"
+  action     String   // "user.login" | "agent.create" | ...
+  targetType String?  // "agent" | "user" | "report" | "org" | "api_key"
+  targetId   String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?    // diffs, request id — NEVER raw secrets
+  createdAt  DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([orgId, action, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  orgId       String
+  org         Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User      @relation("ApiKeysCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  name        String
+  prefix      String    // first 12 chars shown in UI: "cv_live_xxxxxxxx"
+  keyHash     String    @unique  // sha256(full key)
+  scopes      String[]            // ["agents:read","runs:write","reports:read"]
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([orgId, revokedAt])
+}
+
+model Agent {
+  id                 String      @id @default(cuid())
+  orgId              String
+  org                Org         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name               String
+  agentType          String
+  model              String
+  endpointUrl        String
+  apiKey             String      // encrypted
+  requestFormat      Json
+  responsePath       String
+  systemPrompt       String?
+  statedPurpose      String?
+  knownGuardrails    String?
+  sensitiveDataScope String[]
+  userAccessLevel    String
+  understanding      Json?
+  riskScore          Int?
+  status             String      @default("active")
+  lastTestedAt       DateTime?
+  testSuites         TestSuite[]
+  // v2.1 — browser-driven chat (Playwright adapter). When agentType == "web_chat"
+  // the regular endpoint/apiKey fields are unused and the engine drives the bot
+  // through a real browser. `browserConfig` stores loginUrl, chatUrl, selectors,
+  // and timing knobs (Json shape: BrowserChatConfig). `browserPasswordEnc` is
+  // encrypted with the same ENCRYPTION_KEY as `apiKey`.
+  browserConfig      Json?
+  browserPasswordEnc String?
+  // v1.4 — soft-delete
+  deletedAt          DateTime?
+  createdAt          DateTime    @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([orgId, deletedAt])
+}
+
+model TestSuite {
+  id        String     @id @default(cuid())
+  agentId   String
+  agent     Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  testCases TestCase[]
+  testRuns  TestRun[]
+  createdAt DateTime   @default(now())
+}
+
+model TestCase {
+  id                    String       @id @default(cuid())
+  suiteId               String
+  suite                 TestSuite    @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+  externalId            String       // e.g. "TC-001"
+  category              String
+  severity              String
+  name                  String
+  description           String
+  attackPrompt          String
+  expectedSafeBehaviour String
+  detectionCriteria     String
+  // SE-2 — catalog grounding. probeId is null for legacy v1-engine runs.
+  probeId               String?
+  probe                 Probe?       @relation(fields: [probeId], references: [id], onDelete: SetNull)
+  strategyChain         String[]     @default([])
+  results               TestResult[]
+
+  @@index([probeId])
+}
+
+model TestRun {
+  id          String       @id @default(cuid())
+  suiteId     String
+  suite       TestSuite    @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+  status      RunStatus    @default(PENDING)
+  // Finer-grained lifecycle within a RUNNING status
+  phase       String?      // "preparing" | "executing" | "reporting"
+  phaseDetail String?      // human-readable progress note, e.g. "Generating tailored test suite via Claude…"
+  progress    Int          @default(0)
+  totalTests  Int          @default(0)
+  results     TestResult[]
+  report      Report?
+  startedAt   DateTime?
+  completedAt DateTime?
+  errorMessage String?
+  // v1.4 — cancellation + engine-version tracking
+  cancelRequested  Boolean   @default(false)
+  cancelledAt      DateTime?
+  cancelledById    String?
+  engineVersion    String    @default("v1")  // "v1" = legacy LLM-only, "v2" = catalog-driven hybrid
+  // v1.4 — soft-delete
+  deletedAt        DateTime?
+  // v2.2 — deterministic seed for reproducibility (D2). 16 hex chars = 64 bits.
+  // Hex string so it round-trips cleanly through JSON / API responses.
+  seed             String    @default("")
+  // v2.2 — exhaustive enumeration mode. "llm" = legacy LLM-curated; "cartesian"
+  // = deterministic full enumeration of (probe × strategy_chain × language × framing).
+  enumerationMode  String    @default("llm")
+  createdAt   DateTime     @default(now())
+
+  @@index([suiteId, createdAt])
+  @@index([status, createdAt])
+}
+
+model TestResult {
+  id                   String   @id @default(cuid())
+  testRunId            String
+  testRun              TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCaseId           String
+  testCase             TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  result               Verdict  // v2.2 — enum-typed (was free-form String)
+  confidence           Float
+  reasoning            String
+  exploitationEvidence String?
+  agentResponse        String
+  // v2.2 — attempts (oracle re-evals, adaptive children) hang off the result
+  attempts             TestAttempt[]
+  createdAt            DateTime @default(now())
+}
+
+/// v2.2 — one row per oracle attempt. A TestCase can yield multiple
+/// TestAttempts when:
+///   - the oracle combiner triggers a re-eval (low confidence)
+///   - the adaptive child-payload queue derives a follow-up
+///   - a multi-turn orchestrator records each turn
+///
+/// `signals` holds the per-tier oracle signals (pre-eval, detector chain,
+/// LLM judge) so a verdict can be audited after the fact.
+model TestAttempt {
+  id                String        @id @default(cuid())
+  resultId          String
+  result            TestResult    @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  attemptNumber     Int           // 1-indexed; primary attempt = 1
+  // Payload sent to the target (after strategy transforms)
+  transformedPrompt String
+  // Strategy chain applied to derive transformedPrompt from the case's base prompt
+  appliedStrategies String[]      @default([])
+  // Target response (truncated only if > MAX_RESPONSE_BYTES)
+  agentResponse     String
+  // Oracle outcome for THIS attempt (the TestResult.result is the aggregate)
+  verdict           Verdict
+  confidence        Float
+  // Per-tier signal snapshot
+  // {
+  //   preEval:  { verdict, confidence, reasoning, evidence } | null,
+  //   detector: { verdict, confidence, hits: [{slug, ...}] } | null,
+  //   llmJudge: { verdict, confidence, reasoning, evidence } | null,
+  //   decoded:  { encodings: ['base64'], decodedText, decodedVerdict } | null,
+  //   language: 'en' | 'zu' | ... | null,
+  // }
+  signals           Json
+  // Whether this attempt was a re-eval triggered by low confidence on a prior
+  // attempt (true) or part of the adaptive child queue (parent set)
+  reevalOf          String?       // resultId or attemptId of the predecessor
+  parentAttemptId   String?       // for adaptive children
+  durationMs        Int           @default(0)
+  createdAt         DateTime      @default(now())
+
+  @@index([resultId, attemptNumber])
+}
+
+model Report {
+  id                 String   @id @default(cuid())
+  testRunId          String   @unique
+  testRun            TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  executiveSummary   String
+  overallRiskRating  String
+  riskScore          Int
+  keyFindings        Json
+  categoryBreakdown  Json
+  remediationRoadmap Json
+  technicalNotes     String
+  conclusion         String
+  shareToken         String   @unique @default(cuid())
+  // Share-link hardening
+  shareEnabled       Boolean  @default(true)
+  shareExpiresAt     DateTime?
+  shareRevokedAt     DateTime?
+  shareCreatedById   String?
+  shareCreatedBy     User?    @relation("ReportSharesCreated", fields: [shareCreatedById], references: [id], onDelete: SetNull)
+  shareViews         ReportShareView[]
+  // v1.4 — soft-delete
+  deletedAt          DateTime?
+  createdAt          DateTime @default(now())
+}
+
+model ReportShareView {
+  id        String   @id @default(cuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
+  viewedAt  DateTime @default(now())
+
+  @@index([reportId, viewedAt])
+}
+
+// AttackPattern + KnowledgeArticle were dropped in the Knowledge/Library/Datasets
+// merge — both now live as Probe rows (source='cortexview_learned' for the
+// former, source='cortexview_kb' for the latter). See `lib/services/learning/`.
+
+/// Cached web-research findings used to ground test-generation in current threats.
+model ResearchSnapshot {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  topic       String
+  query       String
+  summary     String   // Claude-summarised digest
+  findings    Json     // [{title, url, snippet, publishedAt?}]
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, createdAt])
+}
+
+/// Per-org SMTP transport for outbound email (verifications, invites,
+/// scheduled reports). When `enabled = true`, lib/email.ts prefers this
+/// config over the `SMTP_*` environment fallback so admins can configure
+/// without touching `.env`.
+///
+/// `authPass` is encrypted with the app-wide ENCRYPTION_KEY via lib/crypto.
+model SmtpConfig {
+  id            String   @id @default(cuid())
+  orgId         String   @unique
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enabled       Boolean  @default(false)
+  host          String
+  port          Int      @default(587)
+  // Strict TLS-on-connect. False for STARTTLS (port 587, default).
+  secure        Boolean  @default(false)
+  authUser      String?
+  authPass      String?  // encrypted (envelope via lib/crypto)
+  fromAddress   String                          // e.g. "Nemesis AI <noreply@acme.com>"
+  replyTo       String?
+  lastTestAt    DateTime?
+  lastTestOk    Boolean?
+  lastTestError String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

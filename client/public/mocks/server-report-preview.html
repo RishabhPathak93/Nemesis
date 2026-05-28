@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Server-rendered report preview</title>
+<style>body{font-family:system-ui;padding:32px;}iframe{width:100%;height:90vh;border:1px solid #ccc;border-radius:8px;}</style>
+</head><body>
+<h2>Loading the server's enterprise HTML export below…</h2>
+<p style="color:#666">Source: <code>GET /api/reports/:id/export?format=html</code> · this is what Puppeteer renders into a PDF, and what scheduled-report emails attach.</p>
+<iframe id="f" src="about:blank"></iframe>
+<script>
+(async () => {
+  const r = await fetch('http://localhost:3001/api/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'darkcheck@test.local', password: 'DarkCheck1234!' }),
+    credentials: 'include',
+  });
+  const d = await r.json();
+  const html = await fetch('http://localhost:3001/api/reports/cmp1mxp3k000sbhzi5zaf3qci/export?format=html', {
+    headers: { Authorization: 'Bearer ' + d.accessToken },
+  }).then(r => r.text());
+  const blob = new Blob([html], { type: 'text/html' });
+  document.getElementById('f').src = URL.createObjectURL(blob);
+})();
+</script>
+</body></html>

@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nemesis-branding
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nemesis-server
+  labels:
+    app.kubernetes.io/name: nemesis-ai-server
+spec:
+  selector:
+    app.kubernetes.io/name: nemesis-ai-server
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nemesis-server
+  labels:
+    app.kubernetes.io/name: nemesis-ai-server
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nemesis-ai-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nemesis-ai-server
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: server
+          # Replace with your registry-hosted image, e.g. ghcr.io/your-org/nemesis-ai-server:v1.0.0
+          image: nemesis-ai-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3001
+          env:
+            # Pieces assembled from the secret + configmap
+            - name: DATABASE_URL
+              value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@nemesis-postgres:5432/$(POSTGRES_DB)
+            - name: REDIS_URL
+              value: redis://nemesis-redis:6379
+            - name: POSTGRES_DB
+              valueFrom: { configMapKeyRef: { name: nemesis-ai-config, key: POSTGRES_DB } }
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: nemesis-ai-config, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: nemesis-ai-secrets, key: POSTGRES_PASSWORD } }
+          envFrom:
+            - configMapRef: { name: nemesis-ai-config }
+            - secretRef: { name: nemesis-ai-secrets }
+          volumeMounts:
+            - name: branding
+              mountPath: /data/branding
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { cpu: 2000m, memory: 2Gi }
+      volumes:
+        - name: branding
+          persistentVolumeClaim:
+            claimName: nemesis-branding

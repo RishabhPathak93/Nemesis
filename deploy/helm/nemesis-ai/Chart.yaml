@@ -1,0 +1,31 @@
+apiVersion: v2
+name: nemesis-ai
+description: Nemesis AI — Adversarial testing for AI agents (self-hosted)
+type: application
+version: 0.3.0
+appVersion: "2.0.0"
+home: https://github.com/nemesis-ai/nemesis-ai
+sources:
+  - https://github.com/nemesis-ai/nemesis-ai
+keywords:
+  - ai
+  - security
+  - red-team
+  - llm
+  - adversarial-testing
+maintainers:
+  - name: Nemesis AI
+icon: https://nemesis-ai.local/logo.png
+
+# Optional bundled deps so first-time evaluators can spin up the full stack.
+# Production operators typically point at managed Postgres / ElastiCache and
+# disable both via `--set postgresql.enabled=false --set redis.enabled=false`.
+dependencies:
+  - name: postgresql
+    version: "16.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "20.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled

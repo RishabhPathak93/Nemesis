@@ -1,0 +1,27 @@
+# Plain-Kubernetes overlay (an alternative to the Helm chart in ../helm).
+#
+# Apply with:
+#   kubectl apply -k deploy/kubernetes/
+#
+# Before applying, fill in the values in 10-secret.yaml (or replace with a
+# sealed-secret / external-secret reference) and adjust the image references
+# in 30-server-deployment.yaml / 31-client-deployment.yaml to point at your
+# registry.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nemesis-ai
+
+commonLabels:
+  app.kubernetes.io/part-of: nemesis-ai
+  app.kubernetes.io/managed-by: kubectl
+
+resources:
+  - 00-namespace.yaml
+  - 10-secret.yaml
+  - 11-configmap.yaml
+  - 20-postgres.yaml
+  - 21-redis.yaml
+  - 30-server-deployment.yaml
+  - 31-client-deployment.yaml
+  - 40-ingress.yaml

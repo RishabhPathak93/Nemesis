@@ -1,0 +1,160 @@
+# Default values for the Nemesis AI Helm chart.
+# Override per-environment via `-f my-values.yaml` or `--set`.
+
+image:
+  server:
+    repository: nemesis-ai/server
+    tag: "1.4.0"
+    pullPolicy: IfNotPresent
+  client:
+    repository: nemesis-ai/client
+    tag: "1.4.0"
+    pullPolicy: IfNotPresent
+
+replicaCount:
+  server: 2
+  client: 2
+
+resources:
+  server:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  client:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Postgres + Redis. Production operators run their own managed instances and
+# disable both bundled sub-charts. Set the secret references below to point
+# at the right secret. For first-time evaluators, flip `postgresql.enabled=true`
+# (or `redis.enabled=true`) and the bundled Bitnami sub-charts spin up.
+externalServices:
+  databaseUrlSecret: nemesis-ai-db
+  databaseUrlKey: DATABASE_URL
+  redisUrlSecret: nemesis-ai-redis
+  redisUrlKey: REDIS_URL
+
+# Bundled Postgres sub-chart (Bitnami). Off by default — operators bring
+# their own managed RDS / Cloud SQL / Aurora. When enabled, the chart will
+# also create a `nemesis-ai-db` secret with `DATABASE_URL` so the server
+# pod's existing references continue to work.
+postgresql:
+  enabled: false
+  auth:
+    database: nemesis-ai
+    username: nemesis-ai
+    existingSecret: nemesis-ai-db
+  primary:
+    persistence:
+      size: 20Gi
+
+# Bundled Redis sub-chart. Off by default.
+redis:
+  enabled: false
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 5Gi
+
+# Application secrets. Set via `kubectl create secret generic nemesis-ai-secrets`
+# with the keys below. The chart references them; it does NOT generate them.
+appSecrets:
+  name: nemesis-ai-secrets
+  keys:
+    - JWT_SECRET
+    - ENCRYPTION_KEY
+    - HEALTH_TOKEN
+    - METRICS_TOKEN
+  # Optional keys (set when the corresponding feature is enabled):
+  optionalKeys:
+    - SMTP_HOST
+    - SMTP_PORT
+    - SMTP_USER
+    - SMTP_PASS
+    - SMTP_FROM
+    - SENTRY_DSN
+    - OTEL_EXPORTER_OTLP_ENDPOINT
+    - LLM_PROVIDER
+    - LLM_API_KEY
+
+# Feature toggles surfaced as env vars on the server pod.
+features:
+  rateLimitRedis: "true"      # use Redis-backed rate limiting
+  detectorPipeline: "true"    # SE-3 detector pipeline (turn off to A/B against legacy)
+  cookieSecure: "true"        # require HTTPS for cookies (production)
+
+# Persistence: branding logo storage volume.
+persistence:
+  branding:
+    enabled: true
+    storageClass: ""          # empty = cluster default
+    size: 5Gi
+    accessMode: ReadWriteOnce
+    mountPath: /data/branding
+
+# Ingress.
+ingress:
+  enabled: false
+  className: nginx
+  hosts:
+    - host: nemesis-ai.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: server
+        - path: /
+          pathType: Prefix
+          service: client
+  tls:
+    - hosts:
+        - nemesis-ai.example.com
+      secretName: nemesis-ai-tls
+
+# Liveness / readiness probes hit the deeper health endpoint when configured.
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readiness:
+    path: /health/deep
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    httpHeaders:
+      - name: X-Health-Token
+        value: ""             # injected from appSecrets.HEALTH_TOKEN at deploy
+
+# Pod disruption budget — keep at least one server pod available during
+# voluntary disruptions (node drain, upgrade).
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Service account (no annotations by default — use IRSA / Workload Identity
+# for cloud-managed credentials by overriding annotations).
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Network policy — locks egress to LLM provider + (optional) Sentry/OTel.
+networkPolicy:
+  enabled: false
+  egressAllowedPorts: [443, 5432, 6379]
+
+# Observability extras.
+observability:
+  prometheusServiceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 30s
+    metricsToken: ""          # passed as X-Metrics-Token header

@@ -1,0 +1,43 @@
+# Ingress assumes an nginx-ingress controller is installed. Adjust the
+# className/annotations for traefik, GKE Ingress, ALB, etc.
+#
+# Update the host before applying. To skip TLS, remove the tls: block and
+# the cert-manager annotation.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nemesis-ai
+  annotations:
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "16m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nemesis.example.com
+      secretName: nemesis-ai-tls
+  rules:
+    - host: nemesis.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: nemesis-server
+                port:
+                  number: 3001
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: nemesis-server
+                port:
+                  number: 3001
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nemesis-client
+                port:
+                  number: 8080

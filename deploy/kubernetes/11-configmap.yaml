@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nemesis-ai-config
+data:
+  NODE_ENV: "production"
+  PORT: "3001"
+  LOG_LEVEL: "info"
+  RATE_LIMIT_REDIS: "true"
+  # Public origin the SPA will be served from. Adjust to your ingress hostname.
+  CLIENT_ORIGIN: "https://nemesis.example.com"
+  POSTGRES_DB: "nemesis"
+  POSTGRES_USER: "nemesis"
+  OTEL_SERVICE_NAME: "nemesis-ai-server"
+  CV_BRANDING_DIR: "/data/branding"

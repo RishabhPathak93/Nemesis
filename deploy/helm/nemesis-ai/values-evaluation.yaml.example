@@ -1,0 +1,54 @@
+# Example overrides for "spin up everything in one cluster" first-time
+# evaluators. Copy as values.yaml and tweak. NOT for production.
+#
+#   helm install cv ./deploy/helm/nemesis-ai -f values-evaluation.yaml.example
+
+postgresql:
+  enabled: true
+  auth:
+    database: nemesis-ai
+    username: nemesis-ai
+    password: change-me-evaluation-only
+    postgresPassword: change-me-evaluation-only
+
+redis:
+  enabled: true
+
+externalServices:
+  databaseUrlSecret: cv-postgresql
+  databaseUrlKey: DATABASE_URL
+  redisUrlSecret: cv-redis
+  redisUrlKey: REDIS_URL
+
+# Replicas + size knocked down for a single-node cluster.
+replicaCount:
+  server: 1
+  client: 1
+
+resources:
+  server:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: nemesis-ai.localhost
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: server
+        - path: /
+          pathType: Prefix
+          service: client
+
+# Disable PDB on a single-node cluster.
+podDisruptionBudget:
+  enabled: false
+
+persistence:
+  branding:
+    enabled: true
+    storageClass: ""
+    size: 1Gi

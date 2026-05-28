@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Nemesis AI · Report style mocks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --surface: #11172a;
+      --surface-2: #161e36;
+      --border: #1f2740;
+      --text: #e6ebf5;
+      --muted: #94a3b8;
+      --accent: #6366f1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+    }
+    .container { max-width: 880px; margin: 0 auto; padding: 64px 32px; }
+    h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .subtitle { color: var(--muted); margin: 0 0 40px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card-id { color: var(--muted); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .card-title { font-size: 16px; font-weight: 600; margin: 8px 0 6px; }
+    .card-desc { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 0; }
+    .footer { color: var(--muted); font-size: 12px; margin-top: 48px; line-height: 1.7; }
+    .footer code { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Report style mocks</h1>
+    <p class="subtitle">Three reporting-layout directions inspired by Faraday's vulnerability-management UI, adapted to Nemesis AI's AI agent context.</p>
+
+    <div class="grid">
+      <a class="card" href="/mocks/report-mock-1-findings-table.html">
+        <div class="card-id">Mock 01</div>
+        <div class="card-title">Findings table</div>
+        <p class="card-desc">Dense, scannable list of every finding across all runs. Severity-colored left bar, status pill, owner, asset, CVE-style id. Designed for an analyst working through a backlog.</p>
+      </a>
+      <a class="card" href="/mocks/report-mock-2-finding-detail.html">
+        <div class="card-id">Mock 02</div>
+        <div class="card-title">Finding detail (split view)</div>
+        <p class="card-desc">A vuln-list on the left, slide-in detail on the right. Description, evidence transcript, mitigations, references, status workflow — all in one view without leaving context.</p>
+      </a>
+      <a class="card" href="/mocks/report-mock-3-executive.html">
+        <div class="card-id">Mock 03</div>
+        <div class="card-title">Executive overview</div>
+        <p class="card-desc">Manager-facing dashboard: risk score, severity donut, top-5 critical findings, trend over time, compliance coverage. Designed for the engagement summary that lands in a stakeholder's inbox.</p>
+      </a>
+    </div>
+
+    <div class="footer">
+      Notes:<br>
+      &middot; All mocks use the same seeded demo data (Demo: Acme Support Bot, etc.) for continuity.<br>
+      &middot; These are static <code>.html</code> visual prototypes — no React, no API calls. Once a direction is picked we wire it into <code>ReportView.tsx</code>.<br>
+      &middot; Severity colours and status pills mirror Faraday's convention: critical=red, high=orange, medium=amber, low=blue, info=slate.
+    </div>
+  </div>
+</body>
+</html>

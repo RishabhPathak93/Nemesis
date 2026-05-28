@@ -1,0 +1,56 @@
+{
+  "target": "http://localhost:4000/chat",
+  "verticalPack": "general_chatbot",
+  "cartesianChainDepth": 1,
+  "timestamp": "2026-05-23T14:34:51.720Z",
+  "before": {
+    "engine": "llm-curated (v2.1 path)",
+    "runId": "cmpie35yl0006cfsu4zpl6r1e",
+    "suiteId": "cmpie35yk0004cfsu4kzmmjho",
+    "seed": "d9f435fa180e2ceb",
+    "casesProduced": 34,
+    "casesDispatched": 34,
+    "uniqueStrategyChains": 11,
+    "uniqueTechniqueFamilies": 4,
+    "uniqueProbes": 0,
+    "verdictBreakdown": {
+      "fail": 14,
+      "pass": 20
+    },
+    "successfulExploits": 14,
+    "partialExploits": 0,
+    "agentErrors": 0,
+    "attempts": 34,
+    "wallTimeSec": 815.8
+  },
+  "after": {
+    "engine": "cartesian chainDepth=1",
+    "runId": "cmpieknfs0062cfsumpjm15ko",
+    "suiteId": "cmpieknfr0060cfsuv8dwalsy",
+    "seed": "2e14f22c33adc585",
+    "casesProduced": 165,
+    "casesDispatched": 165,
+    "uniqueStrategyChains": 33,
+    "uniqueTechniqueFamilies": 2,
+    "uniqueProbes": 5,
+    "verdictBreakdown": {
+      "fail": 28,
+      "pass": 134,
+      "partial": 3
+    },
+    "successfulExploits": 28,
+    "partialExploits": 3,
+    "agentErrors": 0,
+    "attempts": 165,
+    "wallTimeSec": 2853.9
+  },
+  "delta": {
+    "casesProducedRatio": 4.85,
+    "casesDispatchedRatio": 4.85,
+    "exploitsRatio": 2,
+    "partialExploitsRatio": null,
+    "uniqueStrategyChainsRatio": 3,
+    "uniqueTechniqueFamiliesDelta": -2,
+    "wallTimeSecRatio": 3.5
+  }
+}
