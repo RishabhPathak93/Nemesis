@@ -36,6 +36,8 @@ import { executeTestRun } from '../services/testRunner';
 import { encrypt } from '../lib/crypto';
 import { freshSeed } from '../lib/prng';
 import { logger } from '../lib/logger';
+import { normalizeCategory } from '../services/relevance';
+import { relevanceConcentration } from '../services/relevanceMetrics';
 
 const MOCK_AGENT_URL = process.env.BENCH_AGENT_URL || 'http://localhost:4000/chat';
 const VERTICAL_PACK = process.env.BENCH_PACK || 'general_chatbot';
@@ -57,6 +59,7 @@ interface RunSummary {
   agentErrors: number;
   attempts: number;
   wallTimeSec: number;
+  relevanceConcentration: number;
 }
 
 async function ensureBenchOrg(): Promise<{ id: string }> {
@@ -100,7 +103,7 @@ async function ensureBenchAgent(orgId: string) {
   });
 }
 
-async function summariseRun(runId: string, engine: string, seed: string, wallTimeSec: number): Promise<RunSummary> {
+async function summariseRun(runId: string, engine: string, seed: string, wallTimeSec: number, agentId: string): Promise<RunSummary> {
   const verdicts = await prisma.testResult.groupBy({
     by: ['result'],
     where: { testRunId: runId },
@@ -152,6 +155,18 @@ async function summariseRun(runId: string, engine: string, seed: string, wallTim
     _count: { _all: true },
   });
 
+  // Relevance concentration: share of cases whose category matches the agent's top risk categories.
+  const agentRow = await prisma.agent.findUnique({
+    where: { id: agentId },
+    select: { understanding: true },
+  });
+  const understanding = agentRow?.understanding as { risk_categories?: string[] } | null | undefined;
+  const topCategoryKeys: string[] = understanding?.risk_categories
+    ? [...new Set(understanding.risk_categories.map((c) => normalizeCategory(c)[0] ?? '').filter(Boolean))]
+    : [];
+  const suiteCases = await prisma.testCase.findMany({ where: { suiteId }, select: { category: true } });
+  const concentration = relevanceConcentration(suiteCases, topCategoryKeys);
+
   return {
     engine,
     runId,
@@ -168,6 +183,7 @@ async function summariseRun(runId: string, engine: string, seed: string, wallTim
     agentErrors,
     attempts: attempts.length,
     wallTimeSec: Math.round(wallTimeSec * 10) / 10,
+    relevanceConcentration: concentration,
   };
 }
 
@@ -204,7 +220,7 @@ async function driveRun(opts: {
     logger.error({ err, runId: run.id }, '[bench] executeTestRun threw');
   }
   const wallTimeSec = (performance.now() - t0) / 1000;
-  return summariseRun(run.id, opts.engine, seed, wallTimeSec);
+  return summariseRun(run.id, opts.engine, seed, wallTimeSec, opts.agentId);
 }
 
 function round(n: number): number {
