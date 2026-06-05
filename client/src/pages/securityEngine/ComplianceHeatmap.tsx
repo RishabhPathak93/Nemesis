@@ -31,9 +31,9 @@ const FRAMEWORK_TITLES: Record<string, string> = {
 
 function coverageTone(count: number): string {
   if (count === 0) return 'bg-muted/40 text-muted-foreground border-border';
-  if (count < 2) return 'bg-amber-50 text-amber-900 border-amber-200';
-  if (count < 4) return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-  return 'bg-emerald-100 text-emerald-900 border-emerald-300';
+  if (count < 2) return 'bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-500/30';
+  if (count < 4) return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30';
+  return 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-900 dark:text-emerald-200 border-emerald-300';
 }
 
 export default function ComplianceHeatmap() {
@@ -102,7 +102,7 @@ export default function ComplianceHeatmap() {
                         {cell.probes.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {cell.probes.slice(0, 5).map((p) => (
-                              <span key={p.id} className="rounded bg-white/60 px-1.5 py-0.5 font-mono text-[10px] ring-1 ring-black/10">
+                              <span key={p.id} className="rounded bg-card/60 px-1.5 py-0.5 font-mono text-[10px] ring-1 ring-black/10">
                                 {p.slug}
                               </span>
                             ))}

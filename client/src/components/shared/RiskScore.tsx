@@ -33,7 +33,7 @@ export function RiskScore({ score, size = 'md', showLabel = true }: RiskScorePro
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: dims, height: dims }}>
         <svg width={dims} height={dims} className="-rotate-90 transform">
-          <circle cx={dims / 2} cy={dims / 2} r={r} stroke="#e2e8f0" strokeWidth={stroke} fill="none" />
+          <circle cx={dims / 2} cy={dims / 2} r={r} strokeWidth={stroke} fill="none" className="stroke-slate-200 dark:stroke-slate-700" />
           <circle
             cx={dims / 2}
             cy={dims / 2}

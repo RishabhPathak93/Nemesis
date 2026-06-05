@@ -64,15 +64,19 @@ testRunQueue.process(resolveQueueConcurrency(), async (job) => {
     nemesisRunState.inc({ from: 'running', to: 'completed' });
   } catch (err) {
     nemesisRunState.inc({ from: 'running', to: 'failed' });
+    const msg = err instanceof Error ? err.message : String(err);
     logger.warn({ err, testRunId, attempt: job.attemptsMade }, `TestRun ${testRunId} attempt ${job.attemptsMade}/${MAX_ATTEMPTS} failed`);
-    await prisma.testRun.update({
-      where: { id: testRunId },
-      data: {
-        status: 'FAILED',
-        errorMessage: err instanceof Error ? err.message : String(err),
-        completedAt: new Date(),
-      },
-    });
+    // H-06: do NOT mark the run terminally FAILED here — Bull may still retry.
+    // Record the error + a retrying note but keep the status non-terminal so the
+    // UI/cancel don't see a falsely-terminal run and completedAt isn't set
+    // prematurely (which corrupted duration/throughput metrics). The `failed`
+    // handler sets the terminal FAILED state once attempts are exhausted.
+    await prisma.testRun
+      .update({
+        where: { id: testRunId },
+        data: { errorMessage: msg, phaseDetail: `Attempt failed; retrying… (${msg})`.slice(0, 500) },
+      })
+      .catch(() => {});
     throw err; // triggers Bull retry (or dead-letter on the final attempt — see `failed` handler below)
   }
 });
@@ -80,10 +84,16 @@ testRunQueue.process(resolveQueueConcurrency(), async (job) => {
 testRunQueue.on('failed', async (job, err) => {
   if (job.attemptsMade < MAX_ATTEMPTS) return; // still retrying
   const { testRunId } = job.data;
+  const reason = err instanceof Error ? err.message : String(err);
+  // H-06: retries are now exhausted — set the terminal FAILED state here (the
+  // worker catch intentionally leaves it non-terminal during retries).
+  await prisma.testRun
+    .update({ where: { id: testRunId }, data: { status: 'FAILED', errorMessage: reason, completedAt: new Date() } })
+    .catch((e) => logger.error({ e, testRunId }, 'failed to finalise terminally-FAILED run'));
   // Push the exhausted job into the DLQ for inspection / replay.
   await testRunDlq.add({
     ...job.data,
-    reason: err instanceof Error ? err.message : String(err),
+    reason,
   });
   // Audit the dead-letter event so the trail survives queue cleanup.
   const run = await prisma.testRun.findUnique({

@@ -118,7 +118,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
+    <div className="flex h-full items-center justify-center bg-gradient-to-br from-muted to-indigo-50 p-6 dark:from-background dark:to-indigo-950/40">
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 flex items-center gap-2">
           <img src="/logos/reticle.svg" alt="" className="h-9 w-9" />
@@ -143,8 +143,8 @@ export default function Login() {
                 />
               </div>
               {(ssoSamlOrgSlug || ssoOidcOrgSlug) && (
-                <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm">
-                  <div className="mb-2 font-medium text-indigo-900">Single sign-on available for this domain</div>
+                <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm dark:border-indigo-500/30 dark:bg-indigo-500/10">
+                  <div className="mb-2 font-medium text-indigo-900 dark:text-indigo-300">Single sign-on available for this domain</div>
                   <div className="flex flex-col gap-2">
                     {ssoSamlOrgSlug && (
                       <Button type="button" variant="outline" onClick={startSamlLogin}>Continue with SAML</Button>
@@ -158,7 +158,7 @@ export default function Login() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link to="/forgot-password" className="text-xs text-indigo-600 hover:underline">
+                  <Link to="/forgot-password" className="text-xs text-indigo-600 hover:underline dark:text-indigo-400">
                     Forgot password?
                   </Link>
                 </div>
@@ -218,7 +218,7 @@ export default function Login() {
               </Button>
               <button
                 type="button"
-                className="block w-full text-center text-sm text-indigo-600 hover:underline"
+                className="block w-full text-center text-sm text-indigo-600 hover:underline dark:text-indigo-400"
                 onClick={() => { setIsBackup(!isBackup); setCode(''); }}
               >
                 {isBackup ? 'Use authenticator code instead' : 'Use a backup code instead'}

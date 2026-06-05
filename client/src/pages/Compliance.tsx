@@ -153,10 +153,10 @@ export default function Compliance() {
             <CardDescription>Configure your identity provider. SP metadata link below — give it to your IdP admin.</CardDescription>
           </CardHeader><CardContent className="space-y-4">
             {sso?.sp && (
-              <div className="rounded border bg-slate-50 p-3 text-xs">
+              <div className="rounded border bg-muted p-3 text-xs">
                 <div><strong>SP entityId:</strong> <code className="break-all font-mono">{sso.sp.entityId}</code></div>
                 <div><strong>ACS URL:</strong> <code className="break-all font-mono">{sso.sp.acsUrl}</code></div>
-                <div><strong>SP metadata:</strong> <a className="text-indigo-600 underline" href={sso.sp.metadataUrl} target="_blank" rel="noopener noreferrer">{sso.sp.metadataUrl}</a></div>
+                <div><strong>SP metadata:</strong> <a className="text-indigo-600 dark:text-indigo-400 underline" href={sso.sp.metadataUrl} target="_blank" rel="noopener noreferrer">{sso.sp.metadataUrl}</a></div>
               </div>
             )}
             <div><Label>IdP entity ID</Label><Input value={idpEntityId} onChange={(e) => setIdpEntityId(e.target.value)} placeholder="https://idp.example.com/saml/metadata" /></div>
@@ -175,7 +175,7 @@ export default function Compliance() {
             <CardDescription>OAuth-based federation. Use this for Okta / Azure AD / Google Workspace.</CardDescription>
           </CardHeader><CardContent className="space-y-4">
             {oidc?.sp && (
-              <div className="rounded border bg-slate-50 p-3 text-xs">
+              <div className="rounded border bg-muted p-3 text-xs">
                 <div><strong>Redirect URI:</strong> <code className="break-all font-mono">{oidc.sp.redirectUri}</code></div>
                 <div className="text-muted-foreground">Add this as the allowed redirect URI in your OIDC provider.</div>
               </div>

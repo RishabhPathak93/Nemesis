@@ -288,7 +288,7 @@ export function SmtpTab() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
             <Button type="submit" disabled={saving}>
               {saving ? 'Saving…' : 'Save SMTP settings'}
             </Button>
@@ -308,21 +308,21 @@ export function SmtpTab() {
             </div>
 
             {config && (
-              <Button type="button" variant="ghost" onClick={onDisable} className="ml-auto text-red-700 hover:bg-red-50">
+              <Button type="button" variant="ghost" onClick={onDisable} className="ml-auto text-red-700 dark:text-red-300 hover:bg-red-50 dark:bg-red-500/10">
                 <Trash2 className="h-4 w-4" /> Remove configuration
               </Button>
             )}
           </div>
 
           {testResult && (
-            <div className={`flex items-center gap-1.5 text-sm ${testResult.ok ? 'text-emerald-700' : 'text-red-700'}`}>
+            <div className={`flex items-center gap-1.5 text-sm ${testResult.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
               {testResult.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
               {testResult.msg}
             </div>
           )}
 
           {config?.lastTestAt && !testResult && (
-            <div className={`flex items-center gap-1.5 text-xs ${config.lastTestOk ? 'text-emerald-700' : 'text-red-700'}`}>
+            <div className={`flex items-center gap-1.5 text-xs ${config.lastTestOk ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
               {config.lastTestOk ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
               Last test {new Date(config.lastTestAt).toLocaleString()} — {config.lastTestOk ? 'OK' : (config.lastTestError ?? 'failed')}
             </div>

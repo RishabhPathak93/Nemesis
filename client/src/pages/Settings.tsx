@@ -246,7 +246,7 @@ export default function Settings() {
 
             <div className="space-y-1.5">
               <Label htmlFor="llmKey">
-                API key {llmProvider === 'ollama' && <span className="text-slate-400">(usually not required)</span>}
+                API key {llmProvider === 'ollama' && <span className="text-muted-foreground">(usually not required)</span>}
               </Label>
               <Input
                 id="llmKey"
@@ -277,13 +277,13 @@ export default function Settings() {
               </div>
             )}
 
-            <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
+            <div className="flex items-center gap-3 border-t border-border pt-3">
               <Button type="button" variant="outline" onClick={testLlm} disabled={llmTesting}>
                 <Plug className="h-4 w-4" />
                 {llmTesting ? 'Testing…' : 'Test connection'}
               </Button>
               {llmTestResult && (
-                <div className={`flex items-center gap-1.5 text-xs ${llmTestResult.ok ? 'text-emerald-700' : 'text-red-700'}`}>
+                <div className={`flex items-center gap-1.5 text-xs ${llmTestResult.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>
                   {llmTestResult.ok ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                   {llmTestResult.msg}
                 </div>
@@ -492,9 +492,9 @@ export default function Settings() {
         </Card>
 
         {isAdmin && (
-          <Card className="border-red-200 bg-red-50/30">
+          <Card className="border-red-200 dark:border-red-500/30 bg-red-50/30">
             <CardHeader>
-              <CardTitle className="text-red-700">Danger zone</CardTitle>
+              <CardTitle className="text-red-700 dark:text-red-300">Danger zone</CardTitle>
               <CardDescription>Permanently delete all org data. Cannot be undone.</CardDescription>
             </CardHeader>
             <CardContent>

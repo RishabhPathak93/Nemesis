@@ -89,11 +89,11 @@ export default function Webhooks() {
       <PageHeader title="Webhooks" description="HMAC-signed outbound event deliveries with exponential-backoff retry." />
 
       {issuedSecret && (
-        <Card className="mb-4 border-amber-300 bg-amber-50">
+        <Card className="mb-4 border-amber-300 bg-amber-50 dark:bg-amber-500/10">
           <CardContent className="pt-5">
-            <p className="mb-2 text-sm font-medium text-amber-900">Signing secret — shown ONCE, copy it now:</p>
+            <p className="mb-2 text-sm font-medium text-amber-900 dark:text-amber-200">Signing secret — shown ONCE, copy it now:</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 break-all rounded bg-white px-2 py-1 font-mono text-xs text-slate-900">{issuedSecret}</code>
+              <code className="flex-1 break-all rounded bg-card px-2 py-1 font-mono text-xs text-foreground">{issuedSecret}</code>
               <Button size="sm" variant="outline" onClick={copySecret}><Copy className="mr-1 h-4 w-4" /> Copy</Button>
               <Button size="sm" variant="outline" onClick={() => setIssuedSecret(null)}>Dismiss</Button>
             </div>
@@ -120,7 +120,7 @@ export default function Webhooks() {
                     if (next.has(evt)) next.delete(evt); else next.add(evt);
                     setEventChecks(next);
                   }}
-                  className={`rounded border px-2 py-1 text-xs font-mono ${eventChecks.has(evt) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-border text-muted-foreground'}`}
+                  className={`rounded border px-2 py-1 text-xs font-mono ${eventChecks.has(evt) ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-border text-muted-foreground'}`}
                 >
                   {evt}
                 </button>

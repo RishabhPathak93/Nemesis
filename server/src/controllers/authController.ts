@@ -235,6 +235,19 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       throw new HttpError(401, 'Invalid credentials');
     }
 
+    // H-03: enforce the org's "require MFA" policy. After the 14-day grace from
+    // mfaEnforcedAt, a user with no enrolled TOTP can no longer complete
+    // password login — so the policy is actually enforced rather than cosmetic.
+    // Within the grace window we still allow login so the user can enrol.
+    if (user.org?.requireMfa && !user.mfaEnabled) {
+      const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
+      const enforcedAt = user.org.mfaEnforcedAt ? user.org.mfaEnforcedAt.getTime() : Date.now();
+      if (Date.now() > enforcedAt + GRACE_MS) {
+        await recordAttempt({ email, userId: user.id, ip, userAgent: ua, success: false, reason: 'mfa_policy_required' });
+        throw new HttpError(403, 'Your organisation requires multi-factor authentication. Enrol MFA or contact your workspace admin.');
+      }
+    }
+
     // Password ok. If MFA, branch to challenge step.
     if (user.mfaEnabled && user.mfaSecret) {
       await recordAttempt({ email, userId: user.id, ip, userAgent: ua, success: true, reason: 'mfa_required' });

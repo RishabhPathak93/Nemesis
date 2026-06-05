@@ -32,7 +32,11 @@ const { generateToken, doubleCsrfProtection } = doubleCsrf({
     const usesBearer = typeof req.headers.authorization === 'string'
       && req.headers.authorization.startsWith('Bearer ');
     const usesApiKey = !!req.headers['x-api-key'];
-    const usesCookieAuth = !!req.cookies?.token;
+    // M-01: detect cookie-based auth by the cookie names the server actually
+    // sets — `cv_at` (SSO/OIDC access cookie) and the legacy `token`. Keying
+    // only off the non-existent `token` cookie made this branch unreachable, so
+    // CSRF never ran on any cookie-authenticated request.
+    const usesCookieAuth = !!req.cookies?.cv_at || !!req.cookies?.token;
     // Skip if not cookie-authed; let downstream auth middleware handle it.
     if (!usesCookieAuth || usesBearer || usesApiKey) return true;
     // Skip CSRF for the SAML ACS endpoint (it carries a signed SAMLResponse).

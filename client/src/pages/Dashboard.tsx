@@ -53,13 +53,13 @@ export default function Dashboard() {
           label="Total tests run"
           value={stats.totalTestRuns}
           icon={<FlaskConical className="h-5 w-5" />}
-          accent="bg-emerald-50 text-emerald-600"
+          accent="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
         />
         <StatsCard
           label="Critical findings"
           value={stats.criticalFindings}
           icon={<AlertTriangle className="h-5 w-5" />}
-          accent="bg-red-50 text-red-600"
+          accent="bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
         />
       </div>
 

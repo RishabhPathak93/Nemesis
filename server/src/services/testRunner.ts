@@ -87,30 +87,46 @@ export async function executeTestRun(testRunId: string, options: ExecuteTestRunO
   const enumerationMode =
     (initial.enumerationMode as 'llm' | 'cartesian' | 'hybrid' | undefined) ?? 'llm';
 
+  // C-01 fix: on a retry where partial results already exist, REUSE the suite
+  // rather than rebuilding it. buildSuiteForAgent({intoSuiteId}) begins by
+  // deleting the suite's TestCases, which cascade-deletes the TestResults the
+  // prior attempt saved (FK onDelete: Cascade) — that silently defeated the
+  // resumability feature and re-billed the entire (LLM-judged) run on retry.
+  const priorResultCount = await prisma.testResult.count({ where: { testRunId } });
+  const existingCaseCount = await prisma.testCase.count({ where: { suiteId } });
+  const resuming = priorResultCount > 0 && existingCaseCount > 0;
+
   let caseCount = 0;
-  try {
-    const result = await buildSuiteForAgent(agent, {
-      intoSuiteId: suiteId,
-      onProgress: (label) => setPhase(testRunId, 'preparing', label),
-      verticalPackSlug: options.verticalPackSlug,
-      enumerationMode,
-      cartesianOptions: options.cartesianOptions,
-    });
-    caseCount = result.caseCount;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`[runner] suite generation failed for ${testRunId}:`, err);
-    await prisma.testRun.update({
-      where: { id: testRunId },
-      data: {
-        status: 'FAILED',
-        phase: null,
-        phaseDetail: null,
-        errorMessage: `Suite generation failed: ${msg}`,
-        completedAt: new Date(),
-      },
-    });
-    return;
+  if (resuming) {
+    caseCount = existingCaseCount;
+    console.warn(
+      `[runner] resuming ${testRunId}: ${priorResultCount} prior results across ${existingCaseCount} cases — skipping suite rebuild`,
+    );
+  } else {
+    try {
+      const result = await buildSuiteForAgent(agent, {
+        intoSuiteId: suiteId,
+        onProgress: (label) => setPhase(testRunId, 'preparing', label),
+        verticalPackSlug: options.verticalPackSlug,
+        enumerationMode,
+        cartesianOptions: options.cartesianOptions,
+      });
+      caseCount = result.caseCount;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[runner] suite generation failed for ${testRunId}:`, err);
+      await prisma.testRun.update({
+        where: { id: testRunId },
+        data: {
+          status: 'FAILED',
+          phase: null,
+          phaseDetail: null,
+          errorMessage: `Suite generation failed: ${msg}`,
+          completedAt: new Date(),
+        },
+      });
+      return;
+    }
   }
 
   if (caseCount === 0) {
@@ -579,7 +595,11 @@ export async function executeTestRun(testRunId: string, options: ExecuteTestRunO
 
         // Track the worst-so-far verdict and update the TestResult row.
         // Order (worst first): fail > partial > error > pass.
-        if (verdictRank(mutEval.result) > verdictRank(worst.result)) {
+        // L-05: a transient [AGENT_ERROR] on a later escalation step must NOT
+        // overwrite an already-determined pass/partial/fail with "error" — a
+        // flaky endpoint would otherwise downgrade genuine results.
+        const transientEscalationError = mutEval.result === 'error' && worst.result !== 'error';
+        if (!transientEscalationError && verdictRank(mutEval.result) > verdictRank(worst.result)) {
           worst = mutEval;
           await prisma.testResult.update({
             where: { id: createdResult.id },

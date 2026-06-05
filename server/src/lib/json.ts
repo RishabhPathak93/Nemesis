@@ -356,6 +356,11 @@ export function getByPath(obj: unknown, path: string): unknown {
   let cur: unknown = obj;
   for (const t of tokens) {
     if (cur == null) return undefined;
+    // M-09: only index into objects/arrays. Indexing a string/number/boolean
+    // (a mis-configured responsePath) previously returned a stray character or
+    // primitive that was then treated as the agent's real answer, yielding
+    // false pass/fail verdicts instead of a clean [AGENT_ERROR].
+    if (typeof cur !== 'object') return undefined;
     cur = (cur as Record<string | number, unknown>)[t];
   }
   return cur;

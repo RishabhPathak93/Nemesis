@@ -137,7 +137,7 @@ export default function ScheduledReports() {
                       if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
                       setPickedChannels(next);
                     }}
-                    className={`rounded border px-2 py-1 text-xs ${pickedChannels.has(c.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-border text-muted-foreground'}`}
+                    className={`rounded border px-2 py-1 text-xs ${pickedChannels.has(c.id) ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-border text-muted-foreground'}`}
                   >
                     {c.name} <span className="font-mono opacity-60">({c.kind})</span>
                   </button>

@@ -16,6 +16,12 @@ export const logger = pino({
       '*.token',
       '*.tokenHash',
       '*.mfaSecret',
+      // L-04: keep OAuth client-credential secrets + raw outbound request
+      // bodies (e.g. the MS Graph token request) out of logs.
+      '*.client_secret',
+      '*.clientSecret',
+      'err.config.data',
+      '*.config.data',
     ],
     censor: '[redacted]',
   },

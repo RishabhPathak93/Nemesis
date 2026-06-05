@@ -128,9 +128,9 @@ export function BrandingTab() {
             <Label className="mb-2 block">Logo</Label>
             <div className="flex items-center gap-3">
               {logoUrl ? (
-                <img src={logoUrl} alt="org logo" className="h-12 w-12 rounded border bg-white object-contain p-1" />
+                <img src={logoUrl} alt="org logo" className="h-12 w-12 rounded border bg-card object-contain p-1" />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded border bg-slate-50 text-slate-400">
+                <div className="flex h-12 w-12 items-center justify-center rounded border bg-muted text-muted-foreground">
                   <ImageIcon className="h-5 w-5" />
                 </div>
               )}
@@ -151,15 +151,15 @@ export function BrandingTab() {
         {(color || profile?.logoChecksum) && (
           <div>
             <Label className="mb-2 block">Live preview</Label>
-            <div className="rounded-lg border bg-white p-4">
+            <div className="rounded-lg border bg-card p-4">
               <div className="flex items-center gap-3" style={{ borderBottom: `2px solid ${color}` }}>
                 {logoUrl && <img src={logoUrl} alt="" className="h-10 w-10 object-contain" />}
                 <div>
                   <div className="text-lg font-semibold" style={{ color }}>Security Audit Report</div>
-                  <div className="text-xs text-slate-500">Sample — your colour and logo will appear in PDF + HTML exports</div>
+                  <div className="text-xs text-muted-foreground">Sample — your colour and logo will appear in PDF + HTML exports</div>
                 </div>
               </div>
-              <div className="mt-3 text-sm text-slate-900">
+              <div className="mt-3 text-sm text-foreground">
                 Findings, severity ratings, and recommendations render with this brand colour as the primary accent.
               </div>
             </div>

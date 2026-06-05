@@ -24,8 +24,8 @@ export default function SharedReport() {
   if (!report) return <FullPageLoader />;
 
   return (
-    <div className="min-h-full bg-slate-50">
-      <header className="border-b bg-white">
+    <div className="min-h-full bg-muted">
+      <header className="border-b bg-card">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2">
             <img src="/logos/reticle.svg" alt="" className="h-8 w-8" />

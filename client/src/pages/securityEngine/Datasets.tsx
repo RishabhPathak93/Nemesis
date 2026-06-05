@@ -103,11 +103,11 @@ export default function Datasets() {
                   <TableRow key={f.source}>
                     <TableCell className="font-medium">{f.title}</TableCell>
                     <TableCell className="font-mono text-xs">
-                      <a href={`https://github.com/${f.repo}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 inline-flex items-center gap-1">
+                      <a href={`https://github.com/${f.repo}`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 inline-flex items-center gap-1">
                         {f.repo} <ExternalLink className="h-3 w-3" />
                       </a>
                     </TableCell>
-                    <TableCell>{snap ? <Badge>{snap.version}</Badge> : <span className="text-slate-400">—</span>}</TableCell>
+                    <TableCell>{snap ? <Badge>{snap.version}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>{snap?.itemCount ?? '—'}</TableCell>
                     <TableCell className="text-xs">{snap ? new Date(snap.fetchedAt).toLocaleString() : '—'}</TableCell>
                     <TableCell className="text-right">
@@ -152,7 +152,7 @@ export default function Datasets() {
                   <TableRow key={d.id}>
                     <TableCell className="font-medium">{d.source}</TableCell>
                     <TableCell className="font-mono text-xs">{d.version}</TableCell>
-                    <TableCell>{d.licenseUrl ? <a className="text-indigo-600 underline" href={d.licenseUrl} target="_blank" rel="noopener noreferrer">view</a> : '—'}</TableCell>
+                    <TableCell>{d.licenseUrl ? <a className="text-indigo-600 dark:text-indigo-400 underline" href={d.licenseUrl} target="_blank" rel="noopener noreferrer">view</a> : '—'}</TableCell>
                     <TableCell className="text-xs">{d.citation ?? '—'}</TableCell>
                   </TableRow>
                 ))}

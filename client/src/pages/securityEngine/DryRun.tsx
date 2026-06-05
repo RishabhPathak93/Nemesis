@@ -130,10 +130,10 @@ export default function DryRun() {
               <Label>Strategy chain (apply in order)</Label>
               <div className="mt-1 mb-2 min-h-[28px] flex flex-wrap items-center gap-1">
                 {chain.length === 0 ? (
-                  <span className="text-xs text-slate-400">none — payload sent unmodified</span>
+                  <span className="text-xs text-muted-foreground">none — payload sent unmodified</span>
                 ) : (
                   chain.map((slug, i) => (
-                    <span key={`${slug}-${i}`} className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800">
+                    <span key={`${slug}-${i}`} className="inline-flex items-center gap-1 rounded-md border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[11px] text-indigo-800">
                       {slug}
                       <button type="button" aria-label="Move up" className="opacity-60 hover:opacity-100" onClick={() => moveChain(i, -1)} disabled={i === 0}>↑</button>
                       <button type="button" aria-label="Move down" className="opacity-60 hover:opacity-100" onClick={() => moveChain(i, 1)} disabled={i === chain.length - 1}>↓</button>
@@ -150,7 +150,7 @@ export default function DryRun() {
                     <button
                       key={s.slug} type="button"
                       onClick={() => toggleChain(s.slug)}
-                      className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${chain.includes(s.slug) ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-border text-muted-foreground hover:border-indigo-200'}`}
+                      className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${chain.includes(s.slug) ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-border text-muted-foreground hover:border-indigo-200 dark:border-indigo-500/30'}`}
                     >
                       {s.slug}
                     </button>
@@ -199,11 +199,11 @@ export default function DryRun() {
               <div className="space-y-3 text-sm">
                 <div>
                   <div className="mb-1 font-medium text-foreground">Transformed payload</div>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 font-mono text-xs">{result.transformedPayload}</pre>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs">{result.transformedPayload}</pre>
                 </div>
                 <div>
                   <div className="mb-1 font-medium text-foreground">Agent response</div>
-                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 font-mono text-xs">{result.response}</pre>
+                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs">{result.response}</pre>
                 </div>
               </div>
             ) : (
@@ -219,10 +219,10 @@ export default function DryRun() {
                 <div className="text-xs text-foreground"><strong>Rationale:</strong> {result.rationale}</div>
                 <div>
                   <div className="mb-1 font-medium text-foreground">Worst response</div>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 font-mono text-xs">{result.worstResponse}</pre>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs">{result.worstResponse}</pre>
                 </div>
                 <details>
-                  <summary className="cursor-pointer text-xs text-indigo-600">Show transcript ({result.transcript.length} messages)</summary>
+                  <summary className="cursor-pointer text-xs text-indigo-600 dark:text-indigo-400">Show transcript ({result.transcript.length} messages)</summary>
                   <div className="mt-2 space-y-2 max-h-72 overflow-auto">
                     {result.transcript.map((t, i) => (
                       <div key={i} className="border-l-2 border-border pl-2 text-xs">

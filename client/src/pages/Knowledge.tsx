@@ -126,14 +126,14 @@ export default function Knowledge() {
           value={stats.articleCount}
           icon={<Library className="h-5 w-5" />}
           hint="OWASP / MITRE / NIST aligned"
-          accent="bg-violet-50 text-violet-600"
+          accent="bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400"
         />
         <StatsCard
           label="Learned attack patterns"
           value={stats.patternCount}
           icon={<Brain className="h-5 w-5" />}
           hint={stats.learningEnabled ? 'Learning enabled' : 'Learning disabled'}
-          accent={stats.learningEnabled ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-muted-foreground'}
+          accent={stats.learningEnabled ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}
         />
         <StatsCard
           label="Research snapshots"
@@ -146,7 +146,7 @@ export default function Knowledge() {
                 ? 'No search provider configured'
                 : 'Research disabled'
           }
-          accent={stats.researchReady ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-muted-foreground'}
+          accent={stats.researchReady ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-muted text-muted-foreground'}
         />
       </div>
 
@@ -167,7 +167,7 @@ export default function Knowledge() {
         <TabsContent value="library">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[260px] flex-1 max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by id, title, description, category…"
                 value={articleSearch}
@@ -241,7 +241,7 @@ export default function Knowledge() {
         <TabsContent value="patterns">
           <div className="mb-3">
             <div className="relative max-w-sm">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Filter patterns by name, category, or template…"
                 value={search}
@@ -281,10 +281,10 @@ export default function Knowledge() {
                         <div className="font-medium text-foreground">{p.name}</div>
                         <div className="text-xs text-muted-foreground">{p.applicableContext}</div>
                         <details className="mt-1">
-                          <summary className="cursor-pointer text-xs font-medium text-indigo-600 hover:underline">
+                          <summary className="cursor-pointer text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                             Show template
                           </summary>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-2 text-[11px] text-foreground">
+                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-2 text-[11px] text-foreground">
                             {p.pattern}
                           </pre>
                           <p className="mt-1 text-xs italic text-muted-foreground">{p.rationale}</p>
@@ -340,7 +340,7 @@ export default function Knowledge() {
                 </Button>
               </form>
               {!stats.researchReady && (
-                <p className="mt-2 text-xs text-amber-700">
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
                   Research is disabled or no search provider is configured. Enable it in Settings.
                 </p>
               )}
@@ -368,7 +368,7 @@ export default function Knowledge() {
                       <Badge variant="secondary">{r.findings.length} sources</Badge>
                     </div>
                     <p className="whitespace-pre-line text-sm text-foreground">{r.summary}</p>
-                    <div className="border-t border-slate-100 pt-3">
+                    <div className="border-t border-border pt-3">
                       <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Sources
                       </div>
@@ -379,7 +379,7 @@ export default function Knowledge() {
                               href={f.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline"
+                              className="inline-flex items-center gap-1 font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
                             >
                               [{i + 1}] {f.title || f.url}
                               <ExternalLink className="h-3 w-3" />
@@ -412,7 +412,7 @@ function ArticleRow({
   return (
     <Fragment>
       <TableRow className="cursor-pointer" onClick={onToggle}>
-        <TableCell className="text-slate-400">
+        <TableCell className="text-muted-foreground">
           {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </TableCell>
         <TableCell className="font-mono text-xs text-muted-foreground">{article.externalId}</TableCell>
@@ -427,7 +427,7 @@ function ArticleRow({
         </TableCell>
       </TableRow>
       {open && (
-        <TableRow className="!bg-slate-50">
+        <TableRow className="!bg-muted">
           <TableCell></TableCell>
           <TableCell colSpan={5} className="space-y-3 py-4">
             <p className="text-sm text-foreground">{article.description}</p>
@@ -466,7 +466,7 @@ function ArticleRow({
             {/* Payloads */}
             {article.payloads.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
                   Payloads ({article.payloads.length})
                 </div>
                 <ul className="mt-1 space-y-1">
@@ -515,7 +515,7 @@ function ArticleRow({
             {/* Mitigations */}
             {article.mitigations.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Mitigations</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Mitigations</div>
                 <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-foreground">
                   {article.mitigations.map((m) => <li key={m}>{m}</li>)}
                 </ul>
@@ -530,7 +530,7 @@ function ArticleRow({
                   {article.referenceUrls.map((u, i) => (
                     <li key={i}>
                       <a href={u} target="_blank" rel="noopener noreferrer"
-                         className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline">
+                         className="inline-flex items-center gap-1 font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                         {u} <ExternalLink className="h-3 w-3" />
                       </a>
                     </li>
@@ -539,7 +539,7 @@ function ArticleRow({
               </div>
             )}
             {article.source && (
-              <div className="pt-2 text-[10px] text-slate-400">Source: {article.source}</div>
+              <div className="pt-2 text-[10px] text-muted-foreground">Source: {article.source}</div>
             )}
           </TableCell>
         </TableRow>
@@ -558,7 +558,7 @@ function Field({
   tone?: 'emerald' | 'red';
 }) {
   const labelTone =
-    tone === 'emerald' ? 'text-emerald-700' : tone === 'red' ? 'text-rose-700' : 'text-muted-foreground';
+    tone === 'emerald' ? 'text-emerald-700 dark:text-emerald-300' : tone === 'red' ? 'text-rose-700 dark:text-rose-300' : 'text-muted-foreground';
   return (
     <div>
       <div className={`text-[10px] font-semibold uppercase tracking-wide ${labelTone}`}>{label}</div>

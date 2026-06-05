@@ -59,7 +59,7 @@ export function FindingCard({ finding, testCaseById }: FindingCardProps) {
             </div>
             <ul className="mt-2 space-y-3">
               {relatedResults.map((r) => (
-                <li key={r.id} className="rounded-md border border-border bg-slate-50/60 p-3">
+                <li key={r.id} className="rounded-md border border-border bg-muted/60 p-3">
                   <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span className="font-mono font-semibold text-foreground">{r.testCase.externalId}</span>
                     <span>·</span>
@@ -71,14 +71,14 @@ export function FindingCard({ finding, testCaseById }: FindingCardProps) {
                   <div className="text-sm font-medium text-foreground">{r.testCase.name}</div>
                   <div className="mt-2 grid gap-2 md:grid-cols-2">
                     <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600">Attack prompt</div>
-                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-[11px] text-foreground ring-1 ring-slate-200">
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">Attack prompt</div>
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-card p-2 text-[11px] text-foreground ring-1 ring-border">
                         {r.testCase.attackPrompt}
                       </pre>
                     </div>
                     <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-600">Agent response</div>
-                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-[11px] text-foreground ring-1 ring-slate-200">
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">Agent response</div>
+                      <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-card p-2 text-[11px] text-foreground ring-1 ring-border">
                         {r.agentResponse}
                       </pre>
                     </div>
@@ -98,7 +98,7 @@ export function FindingCard({ finding, testCaseById }: FindingCardProps) {
           finding.evidence && (
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Evidence</div>
-              <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-xs text-foreground">
+              <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs text-foreground">
                 {finding.evidence}
               </pre>
             </div>

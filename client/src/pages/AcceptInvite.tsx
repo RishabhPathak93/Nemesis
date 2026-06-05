@@ -81,7 +81,7 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
+    <div className="flex h-full items-center justify-center bg-gradient-to-br from-muted to-indigo-50 dark:to-indigo-950/40 dark:from-background p-6">
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 flex items-center gap-2">
           <img src="/logos/reticle.svg" alt="" className="h-9 w-9" />
@@ -111,7 +111,7 @@ export default function AcceptInvite() {
             </>
           )}
           {preview.hasExistingAccount && (
-            <p className="rounded-md bg-slate-50 p-3 text-sm text-muted-foreground">
+            <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
               An account already exists for this email. Accepting will move you into {preview.orgName}.
             </p>
           )}

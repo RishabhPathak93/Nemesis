@@ -171,7 +171,7 @@ export default function Security() {
           {mfaQr && (
             <form onSubmit={confirmMfa} className="grid max-w-md gap-3">
               <p className="text-sm text-muted-foreground">Scan this QR code in your authenticator app, then enter the 6-digit code it shows.</p>
-              <img src={mfaQr} alt="Scan with your authenticator app" className="h-60 w-60 rounded-md border bg-white p-2" />
+              <img src={mfaQr} alt="Scan with your authenticator app" className="h-60 w-60 rounded-md border bg-card p-2" />
               <div className="space-y-1.5">
                 <Label htmlFor="otp">Code from app</Label>
                 <Input id="otp" inputMode="numeric" required value={mfaCode} onChange={(e) => setMfaCode(e.target.value)} />
@@ -201,9 +201,9 @@ export default function Security() {
           )}
 
           {mfaBackupCodes && (
-            <div className="mt-6 rounded-md border-2 border-amber-300 bg-amber-50 p-4">
+            <div className="mt-6 rounded-md border-2 border-amber-300 bg-amber-50 dark:bg-amber-500/10 p-4">
               <div className="mb-2 flex items-center justify-between">
-                <div className="text-sm font-semibold text-amber-900">Save these backup codes somewhere safe</div>
+                <div className="text-sm font-semibold text-amber-900 dark:text-amber-200">Save these backup codes somewhere safe</div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -215,7 +215,7 @@ export default function Security() {
                   <Copy className="mr-1 h-3 w-3" /> Copy
                 </Button>
               </div>
-              <p className="mb-3 text-xs text-amber-800">
+              <p className="mb-3 text-xs text-amber-800 dark:text-amber-300">
                 Each code works once. They&apos;re shown here only — we don&apos;t store them in plaintext.
               </p>
               <div className="grid grid-cols-2 gap-1 font-mono text-sm">
@@ -253,7 +253,7 @@ export default function Security() {
                     <TableCell className="text-xs text-muted-foreground">{new Date(s.expiresAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Button size="icon" variant="ghost" onClick={() => revokeSession(s.id)} title="Revoke" aria-label="Revoke session">
-                        <Trash2 className="h-4 w-4 text-rose-600" />
+                        <Trash2 className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -331,7 +331,7 @@ function PasskeysCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Fingerprint className="h-4 w-4 text-indigo-600" /> Passkeys (WebAuthn)</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Fingerprint className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Passkeys (WebAuthn)</CardTitle>
         <CardDescription>Hardware-backed second factor — Touch ID, Yubikey, Windows Hello, etc. Adds to TOTP.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

@@ -165,7 +165,7 @@ export default function AgentDetail() {
             <Field label="User access">{agent.userAccessLevel}</Field>
             <Field label="Sensitive data">
               {agent.sensitiveDataScope.length === 0
-                ? <span className="text-slate-400">None</span>
+                ? <span className="text-muted-foreground">None</span>
                 : agent.sensitiveDataScope.map((s) => <Badge key={s} variant="secondary" className="mr-1">{s}</Badge>)}
             </Field>
             {agent.statedPurpose && <Field label="Stated purpose">{agent.statedPurpose}</Field>}
