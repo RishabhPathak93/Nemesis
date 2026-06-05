@@ -5,6 +5,7 @@ import { executeTestRun } from '../services/testRunner';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { writeAudit } from '../lib/audit';
+import { nemesisQueueDepth, nemesisRunState } from '../lib/metrics';
 
 // v2.2 — D4: queue concurrency tunable via QUEUE_CONCURRENCY env var.
 // Defaults to the number of CPU cores. Setting "unlimited" means "as many as
@@ -56,8 +57,13 @@ export const testRunDlq = new Bull<TestRunJobData & { reason: string }>('test-ru
 testRunQueue.process(resolveQueueConcurrency(), async (job) => {
   const { testRunId, verticalPackSlug, cartesianOptions } = job.data;
   try {
+    // W2 observability: surface queue depth + the run-state transition.
+    try { nemesisQueueDepth.set({ queue: 'test_runs' }, await testRunQueue.getWaitingCount()); } catch { /* metrics best-effort */ }
+    nemesisRunState.inc({ from: 'queued', to: 'running' });
     await executeTestRun(testRunId, { verticalPackSlug, cartesianOptions });
+    nemesisRunState.inc({ from: 'running', to: 'completed' });
   } catch (err) {
+    nemesisRunState.inc({ from: 'running', to: 'failed' });
     logger.warn({ err, testRunId, attempt: job.attemptsMade }, `TestRun ${testRunId} attempt ${job.attemptsMade}/${MAX_ATTEMPTS} failed`);
     await prisma.testRun.update({
       where: { id: testRunId },

@@ -32,4 +32,21 @@ Strategy A — foundations-first, accuracy-heavy. One focused chunk per week, st
   `server/src/bench/labeled-set/eval-cases.seed.json` (12 cases: 5 fail / 5 pass / 2 partial, snapshotted
   from local demo runs). Baseline values recorded under `w1Baselines` in `server/bench.json`
   (evalF1=0.75, concentration=0.007, runP95Ms=7.2e6, throughput=0). `bench:baseline` reads the DB for the
-  last 3 metrics and degrades to 0 if the DB is unreachable. Next: **W2 — observability + golden snapshots**.
+  last 3 metrics and degrades to 0 if the DB is unreachable.
+- **2026-06-05 (W2): legacy behavior frozen + observability.** Golden snapshots lock the current
+  evaluator (`evaluation.golden.test.ts`, 2 snaps) and reporting (`reporting.golden.test.ts`, 2 snaps)
+  output — they mock `getLlmClient`, so a fixed LLM reply pins the deterministic parse/normalize layer
+  (refresh deliberately with `vitest -u`). New Prometheus metrics `nemesis_queue_depth` (gauge),
+  `nemesis_run_state` (transition counter), `nemesis_agent_latency_ms` in `lib/metrics.ts`, wired into
+  the run worker (`queues/testRunQueue.ts`), asserted by `lib/metrics.test.ts`. OTel already existed
+  (`lib/otel.ts`, opt-in via `OTEL_EXPORTER_OTLP_ENDPOINT`). **Also fixed the test env**: `tests/setup.ts`
+  now stubs `DATABASE_URL`/`REDIS_URL`/`JWT_SECRET`/`ENCRYPTION_KEY`, taking the suite from 16/28 to
+  **31/31 files, 119 tests green** (the QA-audit gap). Next: **W3 — CI + remote git**.
+
+## Known issues (from the security/QA audit — `nemesis-vapt/`)
+Track for upcoming weeks. Criticals: **C-02** reporting drops real findings on cartesian/hybrid runs
+(externalId `TC-\d+` vs `tc.<slug>` mismatch — refresh the reporting golden snapshot when fixed);
+**C-01** queue retry cascade-deletes prior results (resumability). Highs: SSRF fail-open outside prod,
+unguarded research fetcher, org-MFA/permission-override not enforced, refresh token in localStorage.
+M-03 (evaluator prompt not fenced) maps to **W5/W6**. Prod still has `ALLOW_SIGNUP=true` — lock down
+once invites are in use.
