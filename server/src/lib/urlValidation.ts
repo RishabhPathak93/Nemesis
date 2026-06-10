@@ -141,7 +141,9 @@ const METADATA_HOSTS = new Set(['metadata', 'metadata.google.internal']);
 async function assertNotCloudMetadata(raw: string): Promise<void> {
   let u: URL;
   try { u = new URL(raw); } catch { throw new Error('Invalid URL'); }
-  const host = u.hostname.toLowerCase();
+  // Node keeps brackets around IPv6 literals in `hostname` (e.g. "[::ffff:a9fe:a9fe]")
+  // and net.isIP() rejects the bracketed form — strip them so IP-literal checks work.
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   if (METADATA_HOSTS.has(host)) throw new Error('Cloud metadata hostnames are not allowed');
   const check = (addr: string): void => {
     // Normalize an IPv4-mapped IPv6 literal (e.g. ::ffff:169.254.169.254) so the
