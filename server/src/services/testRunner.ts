@@ -47,6 +47,12 @@ export interface ExecuteTestRunOptions {
    * depth so the LLM-judge bill stays small.
    */
   cartesianOptions?: import('./strategyEnumerator').EnumerateOptions;
+  /**
+   * Remediation Re-test: the suite + its TestCases were pre-populated by the
+   * caller (a re-verification of a prior run's failed findings). Skip suite
+   * generation entirely and execute the existing cases as-is.
+   */
+  skipSuiteGeneration?: boolean;
 }
 
 export async function executeTestRun(testRunId: string, options: ExecuteTestRunOptions = {}): Promise<void> {
@@ -94,7 +100,11 @@ export async function executeTestRun(testRunId: string, options: ExecuteTestRunO
   // resumability feature and re-billed the entire (LLM-judged) run on retry.
   const priorResultCount = await prisma.testResult.count({ where: { testRunId } });
   const existingCaseCount = await prisma.testCase.count({ where: { suiteId } });
-  const resuming = priorResultCount > 0 && existingCaseCount > 0;
+  // Reuse the existing cases when (a) resuming a crashed/retried run that already
+  // has partial results, or (b) this is a Remediation Re-test whose suite was
+  // pre-populated by the caller (skipSuiteGeneration).
+  const resuming =
+    existingCaseCount > 0 && (priorResultCount > 0 || options.skipSuiteGeneration === true);
 
   let caseCount = 0;
   if (resuming) {

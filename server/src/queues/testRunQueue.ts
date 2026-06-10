@@ -30,6 +30,8 @@ export interface TestRunJobData {
     chainDepth?: number;
     includeMultilingual?: boolean;
   };
+  /** Remediation Re-test: execute the caller's pre-built suite (no generation). */
+  skipSuiteGeneration?: boolean;
 }
 
 const RETRY_BACKOFF_MS = 5_000;
@@ -55,12 +57,12 @@ export const testRunDlq = new Bull<TestRunJobData & { reason: string }>('test-ru
 });
 
 testRunQueue.process(resolveQueueConcurrency(), async (job) => {
-  const { testRunId, verticalPackSlug, cartesianOptions } = job.data;
+  const { testRunId, verticalPackSlug, cartesianOptions, skipSuiteGeneration } = job.data;
   try {
     // W2 observability: surface queue depth + the run-state transition.
     try { nemesisQueueDepth.set({ queue: 'test_runs' }, await testRunQueue.getWaitingCount()); } catch { /* metrics best-effort */ }
     nemesisRunState.inc({ from: 'queued', to: 'running' });
-    await executeTestRun(testRunId, { verticalPackSlug, cartesianOptions });
+    await executeTestRun(testRunId, { verticalPackSlug, cartesianOptions, skipSuiteGeneration });
     nemesisRunState.inc({ from: 'running', to: 'completed' });
   } catch (err) {
     nemesisRunState.inc({ from: 'running', to: 'failed' });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Share2 } from 'lucide-react';
+import { ArrowLeft, Download, Share2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, apiError } from '@/lib/api';
 import type { FullReport } from '@/types';
@@ -44,6 +44,21 @@ export default function ReportDetail() {
     toast.success('Share link copied to clipboard');
   }
 
+  const hasFindings = report.results.some((r) => r.result === 'fail' || r.result === 'partial');
+  async function reverify() {
+    if (!report) return;
+    try {
+      const { data } = await api.post<{ testRunId: string; totalTests: number }>(
+        `/test-runs/${report.testRunId}/reverify`,
+        {},
+      );
+      toast.success(`Re-verifying ${data.totalTests} finding(s)…`);
+      navigate(`/reverify/${data.testRunId}?parent=${report.testRunId}`);
+    } catch (err) {
+      toast.error(apiError(err));
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -57,6 +72,11 @@ export default function ReportDetail() {
             <Button variant="outline" onClick={copyShareLink}>
               <Share2 className="h-4 w-4" /> Share report
             </Button>
+            {hasFindings && (
+              <Button variant="outline" onClick={reverify} title="Re-run only the failed findings to confirm a fix">
+                <ShieldCheck className="h-4 w-4" /> Re-verify findings
+              </Button>
+            )}
             <Button onClick={() => downloadReportPdf(report)}>
               <Download className="h-4 w-4" /> Download PDF
             </Button>
