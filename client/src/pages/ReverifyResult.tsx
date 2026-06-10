@@ -33,6 +33,10 @@ export default function ReverifyResult() {
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
   const finish = useCallback(async () => {
+    if (!parentId) {
+      setError('Missing parent run reference — open this from a report\'s "Re-verify findings" button.');
+      return;
+    }
     try {
       const [ver, par] = await Promise.all([
         api.get<Result[]>(`/test-runs/${runId}/results`),
@@ -89,8 +93,15 @@ export default function ReverifyResult() {
     const v = verByExt.get(p.testCase.externalId)?.result;
     return v === 'fail' || v === 'partial';
   });
+  // Re-test cases that errored (agent flaked/timed out) or weren't re-run can't
+  // be judged either way — never silently count them as resolved.
+  const unevaluated = priorFailed.filter((p) => {
+    const v = verByExt.get(p.testCase.externalId)?.result;
+    return v !== 'pass' && v !== 'fail' && v !== 'partial';
+  });
   const total = priorFailed.length;
   const pct = total ? Math.round((resolved.length / total) * 100) : 0;
+  const allClear = resolved.length === total && persistent.length === 0 && unevaluated.length === 0;
 
   return (
     <>
@@ -106,12 +117,15 @@ export default function ReverifyResult() {
 
       <Card className="mb-4 p-6">
         <div className="flex items-center gap-4">
-          <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${resolved.length === total ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
-            {resolved.length === total ? <ShieldCheck className="h-7 w-7" /> : <ShieldAlert className="h-7 w-7" />}
+          <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${allClear ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'}`}>
+            {allClear ? <ShieldCheck className="h-7 w-7" /> : <ShieldAlert className="h-7 w-7" />}
           </div>
           <div>
             <div className="text-2xl font-bold text-foreground">Resolved {resolved.length} of {total} findings</div>
-            <div className="text-sm text-muted-foreground">{pct}% of previously-failing test cases now pass · {persistent.length} still failing</div>
+            <div className="text-sm text-muted-foreground">
+              {pct}% of previously-failing test cases now pass · {persistent.length} still failing
+              {unevaluated.length > 0 && ` · ${unevaluated.length} could not be re-tested`}
+            </div>
           </div>
         </div>
         <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">

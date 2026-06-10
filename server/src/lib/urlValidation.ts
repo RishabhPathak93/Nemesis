@@ -144,8 +144,13 @@ async function assertNotCloudMetadata(raw: string): Promise<void> {
   const host = u.hostname.toLowerCase();
   if (METADATA_HOSTS.has(host)) throw new Error('Cloud metadata hostnames are not allowed');
   const check = (addr: string): void => {
-    if (net.isIPv4(addr) && /^169\.254\./.test(addr)) throw new Error('Link-local/metadata IPs are not allowed');
-    if (net.isIPv6(addr) && /^fe80:/i.test(addr)) throw new Error('Link-local IPs are not allowed');
+    // Normalize an IPv4-mapped IPv6 literal (e.g. ::ffff:169.254.169.254) so the
+    // metadata range can't be smuggled past the IPv4 regex in v6 form.
+    const v4 = addr.toLowerCase().replace(/^::ffff:/, '');
+    if (net.isIPv4(v4) && /^169\.254\./.test(v4)) throw new Error('Link-local/metadata IPs are not allowed');
+    if (net.isIPv6(addr) && (/^fe80:/i.test(addr) || /^::ffff:a9fe:/i.test(addr))) {
+      throw new Error('Link-local IPs are not allowed');
+    }
   };
   if (net.isIP(host)) { check(host); return; }
   try {
