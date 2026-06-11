@@ -14,6 +14,16 @@ product overview and `docs/` for specs/plans.
   used as the env-level transport in `server/src/lib/email.ts` (falls back to SMTP, then log-only).
 - **LLM:** intentionally **unconfigured** in prod (`LLM_PROVIDER` empty) — the AI pipelines stay idle
   until a key is added in Settings or `.env`.
+- **Reporting model — minimum capability:** the report roll-up emits structured JSON. The reporting
+  pipeline (`server/src/services/claude/reporting.ts`) now **map-reduces large failure sets** — when
+  fail/partial findings exceed `REPORT_CHUNK_THRESHOLD` (20) it batches them (`REPORT_CHUNK_SIZE` 12)
+  per LLM call and computes the aggregate fields (risk score, category breakdown, roadmap)
+  deterministically, so no single call can truncate. For Ollama it auto-sizes `num_ctx`
+  (`reportingNumCtx`, ≥16k up to 32k) and `num_predict` (`reportingNumPredict`, 4k–12k). **Run the
+  reporting model with a context window of at least 16k tokens** (32k recommended for big suites) and
+  an instruction-following model in the **8B+** class; a 4k-context model will still degrade JSON. The
+  risk score is floored from failure severities (`deriveRiskScore`) — a real-failure run **never**
+  reports risk 0, even if the LLM output is empty/truncated/unparseable.
 - **Local dev:** `docker compose up -d --build` (project `nemesis-ai`, client published on `:8080`).
   A Vite dev proxy + `client/.env.development` let `npm run dev` (`:5173`) run against the docker API.
 

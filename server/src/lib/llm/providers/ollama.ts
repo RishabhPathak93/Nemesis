@@ -31,10 +31,19 @@ export function createOllamaClient(cfg: LlmResolvedConfig): LlmClient {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
 
+      // An explicit numPredict pins the generation budget (used by reporting on
+      // large failure sets, where the default JSON budget could truncate the
+      // structured output mid-object). Otherwise: -1 lets a JSON response run to
+      // natural stop, and non-JSON falls back to maxTokens.
+      const generationBudget =
+        opts.numPredict && opts.numPredict > 0
+          ? opts.numPredict
+          : opts.responseFormat === 'json'
+            ? -1
+            : opts.maxTokens ?? 4096;
       const ollamaOptions: Record<string, unknown> = {
         temperature: opts.temperature ?? 0.7,
-        // -1 lets the model run to natural stop (recommended with format:json)
-        num_predict: opts.responseFormat === 'json' ? -1 : opts.maxTokens ?? 4096,
+        num_predict: generationBudget,
       };
       if (opts.numCtx && opts.numCtx > 0) {
         ollamaOptions.num_ctx = opts.numCtx;

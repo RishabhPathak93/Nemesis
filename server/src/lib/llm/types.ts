@@ -31,6 +31,16 @@ export interface LlmCallOptions {
    */
   numCtx?: number;
   /**
+   * Cap on the number of tokens the model may GENERATE for this call (distinct
+   * from numCtx, which sizes the whole context window). Currently honoured by
+   * Ollama (passed as `num_predict`); ignored by hosted providers, which use
+   * `maxTokens` instead. Set this for pipelines whose structured-JSON output is
+   * large enough to risk hitting the model's default generation budget and
+   * truncating mid-object (e.g. reporting on a large failure set). When unset,
+   * Ollama keeps its existing behaviour (-1 / run-to-stop for JSON responses).
+   */
+  numPredict?: number;
+  /**
    * Streaming progress callback. When set, the adapter (currently Ollama)
    * uses streaming mode and invokes this with the cumulative response text
    * as tokens arrive. Used by test generation to surface a live "N cases
