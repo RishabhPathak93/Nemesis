@@ -130,16 +130,52 @@ export async function assertPublicHttpsUrl(
   }
 }
 
+const METADATA_HOSTS = new Set(['metadata', 'metadata.google.internal']);
+
 /**
- * Production-only SSRF gate. Calls assertPublicHttpsUrl when NODE_ENV is
- * 'production'; otherwise no-ops so developers can target local mock agents
- * at http://localhost:* without disabling the policy globally.
+ * Even in the relaxed dev mode we never allow cloud-metadata / link-local
+ * targets (169.254.0.0/16, fe80::/10) — the instance metadata service is the
+ * highest-value SSRF target. Private/loopback (127.x, 192.168.x, host gateway)
+ * are permitted here so local Ollama / mock agents work.
+ */
+async function assertNotCloudMetadata(raw: string): Promise<void> {
+  let u: URL;
+  try { u = new URL(raw); } catch { throw new Error('Invalid URL'); }
+  // Node keeps brackets around IPv6 literals in `hostname` (e.g. "[::ffff:a9fe:a9fe]")
+  // and net.isIP() rejects the bracketed form — strip them so IP-literal checks work.
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (METADATA_HOSTS.has(host)) throw new Error('Cloud metadata hostnames are not allowed');
+  const check = (addr: string): void => {
+    // Normalize an IPv4-mapped IPv6 literal (e.g. ::ffff:169.254.169.254) so the
+    // metadata range can't be smuggled past the IPv4 regex in v6 form.
+    const v4 = addr.toLowerCase().replace(/^::ffff:/, '');
+    if (net.isIPv4(v4) && /^169\.254\./.test(v4)) throw new Error('Link-local/metadata IPs are not allowed');
+    if (net.isIPv6(addr) && (/^fe80:/i.test(addr) || /^::ffff:a9fe:/i.test(addr))) {
+      throw new Error('Link-local IPs are not allowed');
+    }
+  };
+  if (net.isIP(host)) { check(host); return; }
+  try {
+    const records = await dns.lookup(host, { all: true });
+    for (const r of records) check(r.address);
+  } catch { /* DNS failure surfaces when the request itself fires */ }
+}
+
+/**
+ * SSRF gate. Used everywhere we accept a customer-supplied outbound URL (agent
+ * endpoints, webhook URLs, dataset fetchers, web research, etc.).
  *
- * Use this everywhere we accept a customer-supplied outbound URL (agent
- * endpoints, webhook URLs, dataset fetchers, etc.).
+ * H-02 fix: FAIL-CLOSED. Validates in every environment by default; the only
+ * relaxation is the explicit `ALLOW_PRIVATE_OUTBOUND_URLS=true` opt-in for local
+ * development. This is never keyed on NODE_ENV (which was fail-open on any
+ * misconfiguration — unset/typo/`staging` silently disabled all SSRF defense).
+ * Even when relaxed, cloud-metadata / link-local remain blocked.
  */
 export async function assertOutboundUrlAllowed(raw: string): Promise<void> {
-  if (process.env.NODE_ENV !== 'production') return;
+  if ((process.env.ALLOW_PRIVATE_OUTBOUND_URLS ?? '').toLowerCase() === 'true') {
+    await assertNotCloudMetadata(raw);
+    return;
+  }
   await assertPublicHttpsUrl(raw);
 }
 

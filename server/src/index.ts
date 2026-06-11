@@ -80,9 +80,13 @@ app.use(
 app.use(express.json({ limit: '5mb' }));
 // NEM-2026-027: turn body-parser parse errors into a clean 400 rather than
 // a 500 + stack leak in production logs.
-const jsonParseErrorHandler: ErrorRequestHandler = (err, req, _res, next) => {
+const jsonParseErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   if (err && (err as { type?: string }).type === 'entity.parse.failed') {
-    return next(Object.assign(new Error('Invalid JSON body'), { status: 400 }));
+    // L-11: respond 400 directly. Previously this delegated a plain Error with
+    // a `status` property to the final errorHandler, which only honours
+    // HttpError — so a malformed body became a 500 instead of a clean 400.
+    res.status(400).json({ error: 'Invalid JSON body', requestId: req.id });
+    return;
   }
   next(err);
 };

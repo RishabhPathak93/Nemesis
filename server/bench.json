@@ -1,4 +1,13 @@
 {
+  "w1Baselines": {
+    "capturedAt": "2026-06-04",
+    "source": "local demo DB — 12 labeled cases (5 fail / 5 pass / 2 partial)",
+    "note": "W1 baseline. expectedVerdict snapshots the current stored verdict, so F1 measures evaluator self-consistency; the 'error' verdict class has 0 labeled cases, which caps macro-F1 at 0.75. Re-baseline against real pilot data in later weeks.",
+    "evalF1Baseline": 0.75,
+    "concentrationBaseline": 0.007,
+    "runP95MsBaseline": 7200000,
+    "queueThroughputBaseline": 0
+  },
   "target": "http://localhost:4000/chat",
   "verticalPack": "general_chatbot",
   "cartesianChainDepth": 1,

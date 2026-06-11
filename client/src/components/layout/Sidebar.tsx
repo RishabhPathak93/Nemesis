@@ -63,14 +63,17 @@ interface NavBodyProps {
 function NavBody({ isAdmin, onNavigate }: NavBodyProps) {
   return (
     <>
-      <nav className="flex-1 px-3 py-2">
+      {/* min-h-0 + overflow-y-auto lets the nav shrink and scroll inside the
+          fixed-height sidebar so the footer below stays pinned and visible on
+          short viewports (otherwise the version line gets clipped off-screen). */}
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2 scrollbar-thin">
         {navItems.map((item) => <NavItemRow key={item.to} item={item} onNavigate={onNavigate} />)}
         <div className="mt-4 px-3 text-xs uppercase tracking-wider text-slate-500">Admin</div>
         {adminNav
           .filter((i) => !i.adminOnly || isAdmin)
           .map((item) => <NavItemRow key={item.to} item={item} onNavigate={onNavigate} />)}
       </nav>
-      <div className="px-6 py-4 text-xs text-slate-500">
+      <div className="shrink-0 px-6 py-4 text-xs text-slate-500">
         v{pkg.version} · AI Security Testing
       </div>
     </>
@@ -100,7 +103,7 @@ export function Sidebar() {
   const role = useAuthStore((s) => s.user?.role);
   const isAdmin = role === 'ADMIN';
   return (
-    <aside className="hidden w-60 shrink-0 flex-col bg-slate-900 text-slate-100 md:flex">
+    <aside className="hidden w-60 shrink-0 flex-col bg-slate-900 text-slate-100 dark:border-r dark:border-border md:flex">
       <NavBrand />
       <NavBody isAdmin={isAdmin} />
     </aside>
@@ -153,7 +156,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
       />
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-slate-100 transition-transform md:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-slate-100 dark:border-r dark:border-border transition-transform md:hidden',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
         role="dialog"

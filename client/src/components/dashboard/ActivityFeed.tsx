@@ -17,7 +17,7 @@ export function ActivityFeed({ items }: { items: DashboardStats['recentActivity'
             <div className="min-w-0">
               <Link
                 to={item.reportId ? `/reports/${item.reportId}` : `/agents/${item.agentId}`}
-                className="block truncate text-sm font-medium text-foreground hover:text-indigo-600"
+                className="block truncate text-sm font-medium text-foreground hover:text-indigo-600 dark:text-indigo-400"
               >
                 {item.agentName}
               </Link>
@@ -37,5 +37,5 @@ function StatusIcon({ status }: { status: string }) {
   if (status === 'COMPLETED') return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
   if (status === 'RUNNING') return <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />;
   if (status === 'FAILED') return <AlertCircle className="h-5 w-5 text-red-500" />;
-  return <Clock className="h-5 w-5 text-slate-400" />;
+  return <Clock className="h-5 w-5 text-muted-foreground" />;
 }

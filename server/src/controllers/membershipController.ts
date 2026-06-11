@@ -70,6 +70,7 @@ export async function switchOrg(req: Request, res: Response, next: NextFunction)
     const { orgId } = SwitchSchema.parse(req.body);
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new HttpError(404, 'user not found');
+    if (!user.isActive) throw new HttpError(401, 'Account deactivated'); // L-01
     let role: Role = user.role;
     if (orgId !== user.orgId) {
       const m = await prisma.membership.findUnique({

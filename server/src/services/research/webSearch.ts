@@ -2,6 +2,7 @@ import axios from 'axios';
 import { env } from '../../lib/env';
 import { decrypt } from '../../lib/crypto';
 import { prisma } from '../../lib/prisma';
+import { assertOutboundUrlAllowed, safeHttpsAgent } from '../../lib/urlValidation';
 
 export interface SearchResult {
   title: string;
@@ -96,13 +97,20 @@ async function searchBrave(apiKey: string, query: string, maxResults: number): P
  */
 export async function fetchUrlText(url: string, maxBytes: number = env.researchMaxFetchBytes): Promise<string> {
   try {
+    // H-01: this URL comes from third-party search results — run it through the
+    // SSRF gate, pin TLS, and disable redirect-following so a result can't bounce
+    // us into the internal network / cloud-metadata (a read-SSRF exfil channel).
+    await assertOutboundUrlAllowed(url);
     const res = await axios.get(url, {
       timeout: 15_000,
       maxContentLength: maxBytes * 4,
+      maxRedirects: 0,
+      httpsAgent: safeHttpsAgent(),
       responseType: 'text',
       headers: { 'User-Agent': 'NemesisAIResearchBot/1.0 (+security-testing)' },
       validateStatus: () => true,
     });
+    if (res.status >= 300 && res.status < 400) return `[fetch blocked redirect ${url}]`;
     if (res.status >= 400) return `[fetch ${res.status} ${url}]`;
     const html = String(res.data || '');
     const text = html

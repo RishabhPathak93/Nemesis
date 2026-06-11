@@ -5,6 +5,7 @@ import { executeTestRun } from '../services/testRunner';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { writeAudit } from '../lib/audit';
+import { nemesisQueueDepth, nemesisRunState } from '../lib/metrics';
 
 // v2.2 — D4: queue concurrency tunable via QUEUE_CONCURRENCY env var.
 // Defaults to the number of CPU cores. Setting "unlimited" means "as many as
@@ -29,6 +30,8 @@ export interface TestRunJobData {
     chainDepth?: number;
     includeMultilingual?: boolean;
   };
+  /** Remediation Re-test: execute the caller's pre-built suite (no generation). */
+  skipSuiteGeneration?: boolean;
 }
 
 const RETRY_BACKOFF_MS = 5_000;
@@ -54,19 +57,28 @@ export const testRunDlq = new Bull<TestRunJobData & { reason: string }>('test-ru
 });
 
 testRunQueue.process(resolveQueueConcurrency(), async (job) => {
-  const { testRunId, verticalPackSlug, cartesianOptions } = job.data;
+  const { testRunId, verticalPackSlug, cartesianOptions, skipSuiteGeneration } = job.data;
   try {
-    await executeTestRun(testRunId, { verticalPackSlug, cartesianOptions });
+    // W2 observability: surface queue depth + the run-state transition.
+    try { nemesisQueueDepth.set({ queue: 'test_runs' }, await testRunQueue.getWaitingCount()); } catch { /* metrics best-effort */ }
+    nemesisRunState.inc({ from: 'queued', to: 'running' });
+    await executeTestRun(testRunId, { verticalPackSlug, cartesianOptions, skipSuiteGeneration });
+    nemesisRunState.inc({ from: 'running', to: 'completed' });
   } catch (err) {
+    nemesisRunState.inc({ from: 'running', to: 'failed' });
+    const msg = err instanceof Error ? err.message : String(err);
     logger.warn({ err, testRunId, attempt: job.attemptsMade }, `TestRun ${testRunId} attempt ${job.attemptsMade}/${MAX_ATTEMPTS} failed`);
-    await prisma.testRun.update({
-      where: { id: testRunId },
-      data: {
-        status: 'FAILED',
-        errorMessage: err instanceof Error ? err.message : String(err),
-        completedAt: new Date(),
-      },
-    });
+    // H-06: do NOT mark the run terminally FAILED here — Bull may still retry.
+    // Record the error + a retrying note but keep the status non-terminal so the
+    // UI/cancel don't see a falsely-terminal run and completedAt isn't set
+    // prematurely (which corrupted duration/throughput metrics). The `failed`
+    // handler sets the terminal FAILED state once attempts are exhausted.
+    await prisma.testRun
+      .update({
+        where: { id: testRunId },
+        data: { errorMessage: msg, phaseDetail: `Attempt failed; retrying… (${msg})`.slice(0, 500) },
+      })
+      .catch(() => {});
     throw err; // triggers Bull retry (or dead-letter on the final attempt — see `failed` handler below)
   }
 });
@@ -74,10 +86,16 @@ testRunQueue.process(resolveQueueConcurrency(), async (job) => {
 testRunQueue.on('failed', async (job, err) => {
   if (job.attemptsMade < MAX_ATTEMPTS) return; // still retrying
   const { testRunId } = job.data;
+  const reason = err instanceof Error ? err.message : String(err);
+  // H-06: retries are now exhausted — set the terminal FAILED state here (the
+  // worker catch intentionally leaves it non-terminal during retries).
+  await prisma.testRun
+    .update({ where: { id: testRunId }, data: { status: 'FAILED', errorMessage: reason, completedAt: new Date() } })
+    .catch((e) => logger.error({ e, testRunId }, 'failed to finalise terminally-FAILED run'));
   // Push the exhausted job into the DLQ for inspection / replay.
   await testRunDlq.add({
     ...job.data,
-    reason: err instanceof Error ? err.message : String(err),
+    reason,
   });
   // Audit the dead-letter event so the trail survives queue cleanup.
   const run = await prisma.testRun.findUnique({

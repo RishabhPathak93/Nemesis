@@ -269,6 +269,8 @@ router.post('/auth/webauthn/register/verify', webauthn.registrationVerify);
 // v1.4 — Test run cancellation
 // ──────────────────────────────────────────────────────────────────────
 router.post('/test-runs/:id/cancel', requirePermission('runs:write'), testRunCancel.cancelTestRun);
+// Remediation Re-test — clone + re-run a completed run's failed/partial findings.
+router.post('/test-runs/:id/reverify', requirePermission('runs:write'), requireScope('runs:write'), runs.reverifyRun);
 
 // ──────────────────────────────────────────────────────────────────────
 // v1.5 — IP allowlist + SSO-only (admin)

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, JwtPayload } from '../lib/jwt';
 import { prisma } from '../lib/prisma';
 import { sha256, isApiKey } from '../lib/tokens';
-import { hasPermission, Permission } from '../lib/permissions';
+import { hasPermission, hasPermissionForOrg, Permission } from '../lib/permissions';
 import { logger } from '../lib/logger';
 
 declare global {
@@ -120,11 +120,26 @@ export function requireRole(...roles: string[]) {
 export { hasPermission };
 export type { Permission };
 
-/** Permission-table-backed authorization. */
+/**
+ * Permission-table-backed authorization, override-aware.
+ *
+ * H-04 fix: this previously used the static `hasPermission(role, perm)` table
+ * and silently ignored per-org `PermissionGrant` overrides — so an admin who
+ * REVOKED a default permission as a lockdown was ignored (the privilege stayed
+ * active). It now resolves through `hasPermissionForOrg`, which applies the
+ * org's grants. Fail-closed on any lookup error.
+ */
 export function requirePermission(perm: Permission) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const role = req.user?.role;
-    if (!role || !hasPermission(role, perm)) {
+    const orgId = req.user?.orgId;
+    try {
+      if (!role || !(await hasPermissionForOrg(role, perm, orgId))) {
+        res.status(403).json({ error: 'Forbidden', requestId: req.id });
+        return;
+      }
+    } catch (err) {
+      logger.error({ err, perm }, 'permission check failed; denying');
       res.status(403).json({ error: 'Forbidden', requestId: req.id });
       return;
     }

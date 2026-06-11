@@ -19,10 +19,10 @@ interface VerticalPack {
 }
 
 const SEVERITY_TONE: Record<string, string> = {
-  critical: 'bg-red-100 text-red-800 ring-red-200',
-  high: 'bg-orange-100 text-orange-800 ring-orange-200',
-  medium: 'bg-amber-100 text-amber-900 ring-amber-200',
-  low: 'bg-slate-100 text-slate-700 ring-slate-200',
+  critical: 'bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-300 ring-red-200 dark:ring-red-500/30',
+  high: 'bg-orange-100 dark:bg-orange-500/15 text-orange-800 dark:text-orange-300 ring-orange-200 dark:ring-orange-500/30',
+  medium: 'bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 ring-amber-200 dark:ring-amber-500/30',
+  low: 'bg-muted text-foreground ring-border',
 };
 
 export default function Verticals() {
@@ -73,11 +73,11 @@ export default function Verticals() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-indigo-600" /> {pack.title}
+                      <Layers className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> {pack.title}
                     </CardTitle>
                     <CardDescription className="mt-1">{pack.description}</CardDescription>
                   </div>
-                  <ChevronRight className={`mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                  <ChevronRight className={`mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`} />
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                   <Badge variant="outline" className="font-mono text-[10px]">{pack.slug}</Badge>
@@ -125,7 +125,7 @@ export default function Verticals() {
                     </Link>
                     <Link
                       to={`/security-engine/probes?vertical=${pack.slug}`}
-                      className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
                       View probes in library <ExternalLink className="h-3 w-3" />
                     </Link>

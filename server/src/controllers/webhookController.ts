@@ -92,6 +92,15 @@ export async function updateWebhook(req: Request, res: Response, next: NextFunct
     const existing = await prisma.webhook.findFirst({ where: { id, orgId } });
     if (!existing) throw new HttpError(404, 'webhook not found');
     const data = UpdateSchema.parse(req.body);
+    // M-05: re-run the SSRF gate when the URL changes — createWebhook validates
+    // it, but update previously did not, so an org could create at an allowed
+    // URL and then PATCH it to an internal one.
+    if (data.url !== undefined) {
+      if (!data.url.startsWith('https://') && !data.url.startsWith('http://')) {
+        throw new HttpError(400, 'url must be http(s)');
+      }
+      await assertOutboundUrlAllowed(data.url);
+    }
     const updated = await prisma.webhook.update({
       where: { id },
       data,

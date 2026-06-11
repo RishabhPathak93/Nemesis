@@ -1,0 +1,17 @@
+# Local-only override (auto-merged by `docker compose`). Puts the server in dev
+# mode so it can target local HTTP agents (e.g. Ollama on the host) — the SSRF
+# gate + HTTPS requirement are production-only. Do NOT use on the droplet.
+#
+# RELEVANCE_TIER_* are raised so every probe lands on the raw-only coverage
+# floor (~1 case/probe) — keeps the suite small for fast CPU-Ollama demo runs.
+# Remove these two lines to restore full relevance-budgeted enumeration.
+services:
+  server:
+    environment:
+      NODE_ENV: development
+      # Local-only: allow private/loopback agent targets (e.g. Ollama on the host)
+      # under the new fail-closed SSRF gate. NEVER set this on the droplet —
+      # cloud-metadata/link-local stay blocked even so.
+      ALLOW_PRIVATE_OUTBOUND_URLS: "true"
+      RELEVANCE_TIER_HIGH: "9"
+      RELEVANCE_TIER_MED: "9"

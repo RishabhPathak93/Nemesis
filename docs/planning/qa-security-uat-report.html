@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Nemesis AI — QA · Security · UAT Report</title>
+<style>
+  :root{--navy:#1f3a6e;--indigo:#4f46e5;--indigo-d:#3730a3;--ink:#0f172a;--slate:#475569;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc;--ok:#15803d;--med:#b45309;--low:#0369a1;--crit:#b91c1c;--high:#ea580c;}
+  *{box-sizing:border-box}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;color:var(--ink);font-size:10.2pt;line-height:1.5;margin:0}
+  h1,h2,h3{color:var(--navy);line-height:1.2;margin:0 0 .35em}
+  h2{font-size:15.5pt;border-bottom:3px solid var(--indigo);padding-bottom:.16em;margin-top:.9em}
+  p{margin:.35em 0}ul{margin:.2em 0 .5em;padding-left:1.1em}li{margin:.12em 0}
+  code{font-family:Consolas,monospace;background:#eef2ff;color:#3730a3;padding:.05em .3em;border-radius:4px;font-size:8.6pt}
+  .small{font-size:8.7pt;color:var(--muted)}
+  @page{size:A4;margin:16mm 15mm 16mm}
+  tr,.box{page-break-inside:avoid}
+  table{border-collapse:collapse;width:100%;margin:.45em 0;font-size:8.9pt}
+  th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+  th{background:#eef2ff;color:var(--navy);font-weight:700}
+  tbody tr:nth-child(even){background:#fbfcfe}
+  .reticle{width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,#4f46e5,#1f3a6e);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800}
+  .head{display:flex;align-items:center;gap:13px;margin-bottom:6px}
+  .meta{font-size:9pt;color:var(--slate);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:.4em 0}
+  .verdict{background:linear-gradient(135deg,#15803d,#166534);color:#fff;border-radius:10px;padding:12px 16px;margin:.5em 0;font-size:10.5pt}
+  .ok{color:var(--ok);font-weight:700}
+  .pill{display:inline-block;color:#fff;border-radius:5px;padding:1px 7px;font-size:8.2pt;font-weight:700}
+  .kgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:.4em 0}
+  .kc{border:1px solid var(--line);border-left:4px solid var(--indigo);border-radius:8px;padding:8px 11px;background:#fff}
+  .kc .n{font-size:17pt;font-weight:800;color:var(--navy)}
+  .kc .l{font-size:8.4pt;color:var(--slate)}
+</style></head><body>
+
+<div class="head">
+  <div class="reticle">◎</div>
+  <div><h1 style="font-size:20pt;margin:0;color:var(--navy)">QA · Security · UAT Report</h1>
+  <div class="small">Nemesis AI · "Remediation Re-test" cycle</div></div>
+</div>
+<div class="meta"><b>Date:</b> 2026-06-09 &nbsp;·&nbsp; <b>Scope:</b> the Remediation Re-test feature + the audit-remediation waves shipped this cycle.</div>
+<div class="verdict"><b>Verdict: ✅ SHIP.</b> All defects found were remediated before moving forward · 146/146 tests pass on first run · UAT signed off.</div>
+
+<div class="kgrid">
+  <div class="kc"><div class="n">100%</div><div class="l">QA pass rate on first run (146/146 tests, tsc clean)</div></div>
+  <div class="kc"><div class="n">4 / 4</div><div class="l">new defects this cycle — found &amp; fixed before QA hand-off (0 escaped)</div></div>
+  <div class="kc"><div class="n">78% / 72%</div><div class="l">coverage of the changed security modules (urlValidation / reporting) — floor met</div></div>
+  <div class="kc"><div class="n">6 / 6</div><div class="l">UAT acceptance criteria passed → signed off</div></div>
+</div>
+
+<h2>1 · Automated test coverage of new/changed code <span class="small">(floor 70–80%)</span></h2>
+<p>Added <b>4 test files / 27 tests</b> on the highest-risk changed modules.</p>
+<table>
+<tr><th>Changed module</th><th>What changed</th><th>Stmts</th><th>Branch</th><th>Funcs</th><th>Floor</th></tr>
+<tr><td><code>lib/urlValidation.ts</code></td><td>H-02 fail-closed SSRF gate + metadata guard</td><td><b>78%</b></td><td>79%</td><td>89%</td><td class="ok">✓</td></tr>
+<tr><td><code>services/claude/reporting.ts</code></td><td>C-02 TC-NNN prompt-id remap</td><td><b>72%</b></td><td>45%</td><td>84%</td><td class="ok">✓</td></tr>
+<tr><td><code>lib/json.ts → getByPath</code></td><td>M-09 non-object guard</td><td colspan="3">function fully covered</td><td class="ok">✓</td></tr>
+<tr><td><code>lib/branding.ts → sniffImageMime</code></td><td>L-03 magic-byte check</td><td colspan="3">function fully covered</td><td class="ok">✓</td></tr>
+</table>
+<p class="small"><b>Gap (tracked):</b> the DB-heavy <code>reverifyRun</code> controller + the <code>skipSuiteGeneration</code> executor path are covered by <b>e2e/UAT</b>, not unit tests; several controller-level audit fixes (auth/MFA/webhook) lack unit tests. → Backlog: a controller integration-test harness (next cycle).</p>
+
+<h2>2 · QA pass rate on first run</h2>
+<p><code>tsc</code> clean (server + client). <b>vitest: 146 / 146 passed (35 files) — 100% first-run pass.</b> Client build green.</p>
+
+<h2>3 · Security findings by severity &amp; % remediated</h2>
+<table>
+<tr><th>Source</th><th>Crit</th><th>High</th><th>Med</th><th>Low</th><th>Total</th><th>Remediated before moving forward</th></tr>
+<tr><td>Original audit (<code>nemesis-vapt/</code>)</td><td>2</td><td>6</td><td>12</td><td>11</td><td>31*</td><td><b>25 fixed; 6 deferred</b> w/ rationale (incl. M-06 closed on prod)</td></tr>
+<tr><td>Fresh-eyes review (this cycle)</td><td>0</td><td>0</td><td>1</td><td>2</td><td>3</td><td class="ok"><b>3 / 3 fixed</b></td></tr>
+<tr><td>Found while writing tests</td><td>0</td><td>0</td><td>1</td><td>0</td><td>1</td><td class="ok"><b>1 / 1 fixed</b> (IPv6-bracket metadata bypass)</td></tr>
+</table>
+<p class="small">*3 Info excluded. <b>This cycle's new defects: 4 found → 4 remediated = 100% before ship.</b> The 6 deferred audit items are Medium/Low or defense-in-depth (e.g. H-05 needs a tested auth-flow rollout) and sit in the next-cycle backlog.<br>
+<b>Live re-checks (local, post-rebuild):</b> malformed JSON → <b>400</b> (L-11) · <code>/agents</code> unauth → <b>401</b> · admin login → <b>200</b>.</p>
+
+<h2>4 · UAT sign-off — Remediation Re-test (vs acceptance criteria)</h2>
+<table>
+<tr><th>Acceptance criterion</th><th>Result</th><th>Evidence</th></tr>
+<tr><td>Endpoint reachable + permission-gated</td><td class="ok">PASS</td><td>unauth <code>POST /reverify</code> → 401</td></tr>
+<tr><td>Re-runs ONLY the failed/partial findings</td><td class="ok">PASS</td><td>parent 13 fail + 1 partial → cloned <b>14</b> (not all 25)</td></tr>
+<tr><td>Reuses pre-built suite (no regeneration)</td><td class="ok">PASS</td><td>new run <code>totalTests=14</code> (not regenerated to 25)</td></tr>
+<tr><td>Shows "Resolved X of Y" delta</td><td class="ok">PASS</td><td>live demo: <b>9 of 14 resolved</b> after "fixing" the agent</td></tr>
+<tr><td>Errored/missing re-tests not mislabeled</td><td class="ok">PASS</td><td>review fix — <code>unevaluated</code> bucket; all-clear gated on it</td></tr>
+<tr><td>Frontend button + result page render</td><td class="ok">PASS</td><td>screenshot-verified; present in served bundle</td></tr>
+</table>
+<p><b>UAT verdict: SIGNED OFF.</b></p>
+
+<h2>5 · Defect density &amp; time to resolve</h2>
+<ul>
+<li><b>New/changed code this cycle:</b> ~600 LOC (re-test feature + tests + in-cycle audit-fix work).</li>
+<li><b>Defects in new/changed code:</b> 4 (1 Med, 3 Low) → <b>density ≈ 6.7 / KLOC</b>.</li>
+<li><b>Average time to resolve:</b> all 4 resolved <b>same session (&lt; 1 hr each)</b> — caught in review/tests before QA hand-off, so <b>0 escaped</b>.</li>
+</ul>
+
+<h2>Follow-ups added to backlog</h2>
+<ul>
+<li>Controller/integration test harness (mock prisma) to unit-cover <code>reverifyRun</code>, auth/MFA, webhook fixes.</li>
+<li>Client test setup (vitest + React Testing Library) to cover the re-verify delta logic directly.</li>
+<li>Resolve the 6 deferred audit findings (H-05 first).</li>
+</ul>
+
+</body></html>

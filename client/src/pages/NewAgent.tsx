@@ -267,7 +267,7 @@ export default function NewAgent() {
                 <Field label="Request format (JSON)" hint={requestFormatError ? `Invalid JSON: ${requestFormatError}` : 'Use {{prompt}} as the message placeholder.'}>
                   <Textarea
                     rows={6}
-                    className={`font-mono text-xs ${requestFormatError ? 'border-red-300 focus-visible:ring-red-200' : ''}`}
+                    className={`font-mono text-xs ${requestFormatError ? 'border-red-300 focus-visible:ring-red-200 dark:ring-red-500/30' : ''}`}
                     value={form.requestFormatStr}
                     onChange={(e) => update('requestFormatStr', e.target.value)}
                     aria-invalid={!!requestFormatError}
@@ -287,7 +287,7 @@ export default function NewAgent() {
         {mode === 'browser' && (
           <Card>
             <CardContent className="grid gap-4 pt-6">
-              <div className="rounded-md border-l-4 border-indigo-500 bg-indigo-50 p-3 text-xs text-indigo-900">
+              <div className="rounded-md border-l-4 border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 p-3 text-xs text-indigo-900 dark:text-indigo-200">
                 <p className="font-semibold">How to find the CSS selectors</p>
                 <p className="mt-1">
                   Open the chat UI in Chrome &rarr; right-click the input field &rarr; <b>Inspect</b>. Copy the
@@ -389,7 +389,7 @@ export default function NewAgent() {
                       onClick={() => toggleScope(s)}
                       className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                         on
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
                           : 'border-border bg-background text-muted-foreground hover:border-slate-400'
                       }`}
                     >
@@ -456,9 +456,9 @@ function ModeCard({
           : 'border-border bg-background hover:border-slate-400'
       }`}
     >
-      <div className={`mt-0.5 ${active ? 'text-indigo-600' : 'text-muted-foreground'}`}>{icon}</div>
+      <div className={`mt-0.5 ${active ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`}>{icon}</div>
       <div>
-        <div className={`text-sm font-semibold ${active ? 'text-indigo-900' : 'text-foreground'}`}>{title}</div>
+        <div className={`text-sm font-semibold ${active ? 'text-indigo-900 dark:text-indigo-200' : 'text-foreground'}`}>{title}</div>
         <p className="mt-1 text-xs text-muted-foreground">{body}</p>
       </div>
     </button>

@@ -113,7 +113,18 @@ webhookQueue.process(4, async (job) => {
     if (responseStatus == null) {
       errorMessage = err instanceof Error ? err.message : String(err);
     }
-    if (!succeeded && responseStatus !== null && (responseStatus < 400 || responseStatus >= 500 || responseStatus === 408 || responseStatus === 429)) {
+    // M-10: a pure transport failure (DNS/connection-reset/timeout) leaves
+    // responseStatus null. That is TRANSIENT and must be retried — previously
+    // the rethrow was gated on `responseStatus !== null`, so transport failures
+    // fell through to a terminal FAILED and were never retried despite the
+    // 8-attempt backoff. Retry on null-status too.
+    const transient =
+      responseStatus == null ||
+      responseStatus < 400 ||
+      responseStatus >= 500 ||
+      responseStatus === 408 ||
+      responseStatus === 429;
+    if (!succeeded && transient) {
       // Update interim state then rethrow for retry
       await prisma.webhookDelivery.update({
         where: { id: deliveryId },

@@ -15,10 +15,10 @@ import { SeverityBadge } from '@/components/shared/SeverityBadge';
 import { formatDate } from '@/lib/utils';
 
 function riskScoreTone(score: number): string {
-  if (score >= 75) return 'text-red-700';
-  if (score >= 50) return 'text-orange-700';
-  if (score >= 25) return 'text-amber-700';
-  return 'text-emerald-700';
+  if (score >= 75) return 'text-red-700 dark:text-red-300';
+  if (score >= 50) return 'text-orange-700 dark:text-orange-300';
+  if (score >= 25) return 'text-amber-700 dark:text-amber-300';
+  return 'text-emerald-700 dark:text-emerald-300';
 }
 
 export default function Reports() {
@@ -90,7 +90,7 @@ export default function Reports() {
                 {filtered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>
-                      <Link to={`/reports/${r.id}`} className="font-medium text-foreground hover:text-indigo-600">
+                      <Link to={`/reports/${r.id}`} className="font-medium text-foreground hover:text-indigo-600 dark:text-indigo-400">
                         {r.agentName}
                       </Link>
                     </TableCell>

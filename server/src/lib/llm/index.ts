@@ -65,7 +65,12 @@ export async function resolveLlmConfig(orgId: string): Promise<LlmResolvedConfig
       try {
         apiKey = decrypt(org.llmApiKey);
       } catch {
-        /* fall through */
+        // L-07: a stored key that won't decrypt (rotated/corrupted
+        // ENCRYPTION_KEY) must be an actionable error — not a silent fall-through
+        // to an empty key, which some adapters turn into an unauthenticated call.
+        throw new Error(
+          'Your organisation\'s stored LLM API key could not be decrypted (the encryption key may have changed). Re-enter the key in Settings → LLM provider.',
+        );
       }
     }
     return {
