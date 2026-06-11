@@ -119,12 +119,12 @@ export default function ApiKeys() {
           </form>
 
           {issuedKey && (
-            <div className="mt-6 rounded-md border-2 border-amber-300 bg-amber-50 p-4">
-              <div className="mb-2 flex items-start gap-2 text-sm font-semibold text-amber-900">
+            <div className="mt-6 rounded-md border-2 border-amber-300 bg-amber-50 dark:bg-amber-500/10 p-4">
+              <div className="mb-2 flex items-start gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200">
                 <AlertCircle className="h-4 w-4" /> Copy this key now — it won&apos;t be shown again.
               </div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded bg-white px-2 py-1 font-mono text-xs text-slate-900">{issuedKey}</code>
+                <code className="flex-1 truncate rounded bg-card px-2 py-1 font-mono text-xs text-foreground">{issuedKey}</code>
                 <Button
                   size="sm"
                   variant="outline"
@@ -193,7 +193,7 @@ export default function ApiKeys() {
                     <TableCell>
                       {!k.revokedAt && (
                         <Button size="icon" variant="ghost" onClick={() => revoke(k.id)} title="Revoke" aria-label="Revoke API key">
-                          <Trash2 className="h-4 w-4 text-rose-600" />
+                          <Trash2 className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                         </Button>
                       )}
                     </TableCell>

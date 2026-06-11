@@ -16,6 +16,7 @@ import NewAgent from '@/pages/NewAgent';
 import AgentDetail from '@/pages/AgentDetail';
 import Reports from '@/pages/Reports';
 import ReportDetail from '@/pages/ReportDetail';
+import ReverifyResult from '@/pages/ReverifyResult';
 import Settings from '@/pages/Settings';
 import Security from '@/pages/Security';
 import ApiKeys from '@/pages/ApiKeys';
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/agents/:id" element={<AgentDetail />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/reports/:id" element={<ReportDetail />} />
+        <Route path="/reverify/:runId" element={<ReverifyResult />} />
         <Route path="/knowledge" element={<Knowledge />} />
         <Route path="/security-engine/probes" element={<ProbeLibrary />} />
         <Route path="/security-engine/compliance" element={<ComplianceHeatmap />} />

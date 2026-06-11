@@ -24,7 +24,7 @@ export default function VerifyEmail() {
       <Card className="w-full max-w-md p-8 text-center">
         {state === 'loading' && (
           <>
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
             <p className="mt-4 text-sm text-muted-foreground">Verifying your email…</p>
           </>
         )}
@@ -33,7 +33,7 @@ export default function VerifyEmail() {
             <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
             <h1 className="mt-3 text-xl font-semibold">Email verified</h1>
             <p className="mt-2 text-sm text-muted-foreground">You can now sign in.</p>
-            <Link to="/login" className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:underline">
+            <Link to="/login" className="mt-4 inline-block text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
               Go to sign in
             </Link>
           </>
@@ -43,7 +43,7 @@ export default function VerifyEmail() {
             <XCircle className="mx-auto h-10 w-10 text-rose-500" />
             <h1 className="mt-3 text-xl font-semibold">Verification failed</h1>
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-            <Link to="/login" className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:underline">
+            <Link to="/login" className="mt-4 inline-block text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
               Back to sign in
             </Link>
           </>

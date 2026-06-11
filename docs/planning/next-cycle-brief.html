@@ -1,0 +1,119 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Nemesis AI — Next-Cycle Planning Brief</title>
+<style>
+  :root{--navy:#1f3a6e;--indigo:#4f46e5;--indigo-d:#3730a3;--ink:#0f172a;--slate:#475569;--muted:#64748b;--line:#e2e8f0;--bg:#f8fafc;--ok:#15803d;--med:#b45309;--low:#0369a1;}
+  *{box-sizing:border-box}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif;color:var(--ink);font-size:10.2pt;line-height:1.5;margin:0}
+  h1,h2,h3{color:var(--navy);line-height:1.2;margin:0 0 .35em}
+  h2{font-size:16.5pt;border-bottom:3px solid var(--indigo);padding-bottom:.18em;margin-top:.2em}
+  h3{font-size:11.8pt;color:var(--indigo-d);margin-top:1em}
+  p{margin:.35em 0}ul{margin:.2em 0 .5em;padding-left:1.1em}li{margin:.12em 0}
+  code{font-family:Consolas,monospace;background:#eef2ff;color:#3730a3;padding:.05em .3em;border-radius:4px;font-size:8.7pt}
+  .small{font-size:8.7pt;color:var(--muted)}
+  @page{size:A4;margin:16mm 15mm 16mm}
+  .page-break{page-break-before:always}tr,.card,.box{page-break-inside:avoid}
+  table{border-collapse:collapse;width:100%;margin:.5em 0;font-size:8.9pt}
+  th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+  th{background:#eef2ff;color:var(--navy);font-weight:700}
+  tbody tr:nth-child(even){background:#fbfcfe}
+  .reticle{width:52px;height:52px;border-radius:13px;background:linear-gradient(135deg,#4f46e5,#1f3a6e);color:#fff;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800}
+  .head{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  .meta{font-size:9pt;color:var(--slate);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:.5em 0}
+  .sel{display:inline-block;background:var(--ok);color:#fff;border-radius:5px;padding:0 6px;font-size:8pt;font-weight:700}
+  .star{display:inline-block;background:var(--med);color:#fff;border-radius:5px;padding:0 6px;font-size:8pt;font-weight:700}
+  .pill{display:inline-block;color:#fff;border-radius:5px;padding:1px 7px;font-size:8.3pt;font-weight:700}
+  .card{border:1px solid var(--line);border-left:4px solid var(--indigo);border-radius:8px;padding:9px 12px;margin:.5em 0;background:#fff}
+  .card .t{font-weight:700;color:var(--navy);font-size:10.5pt}
+  .card .sc{font-size:8.7pt;color:var(--slate);margin:.2em 0}
+  .ac{font-size:9pt;margin:.2em 0 0}.ac b{color:var(--indigo-d)}
+  .kpi{background:linear-gradient(135deg,#4f46e5,#1f3a6e);color:#fff;border-radius:10px;padding:14px 18px;margin:.5em 0}
+  .kpi b{font-size:11pt}
+  .chk{color:var(--ok);font-weight:700}
+</style></head><body>
+
+<div class="head">
+  <div class="reticle">◎</div>
+  <div>
+    <h1 style="font-size:22pt;margin:0;color:var(--navy)">Next-Cycle Planning Brief</h1>
+    <div class="small">Nemesis AI · brainstorm + continuous review · planning Tuesday</div>
+  </div>
+</div>
+<div class="meta">
+  <b>Date:</b> 2026-06-09 &nbsp;·&nbsp; <b>Facilitator:</b> Claude (brainstorm + review) &nbsp;·&nbsp; <b>Owner:</b> Rishabh<br>
+  <b>Inputs:</b> 12-week roadmap (W3–W12) · the security/QA audit · the Remediation Re-test feature · lab work.
+</div>
+<div class="kpi"><b>At a glance —</b> 17 viable ideas added to the backlog; <b>6 (+1 stretch) selected</b> for next cycle,
+<b>100% with scope + acceptance criteria</b>; this Tuesday's review pass caught <b>3 defects, 0 escaped to QA</b> (all fixed).</div>
+
+<h2>1 · Brainstorm → enhancement backlog</h2>
+<p class="small">Score = quick RICE-ish gut (Reach×Impact / Effort), 1–5. Selected items marked <span class="sel">SEL</span> · <span class="star">STRETCH</span>.</p>
+<table>
+<tr><th>ID</th><th>Idea</th><th>Theme</th><th>Why it's good</th><th>Eff</th><th>Score</th><th></th></tr>
+<tr><td><b>CI-1</b></td><td>CI on every PR (tsc + vitest + lint) + remote git</td><td>Ops</td><td>Unblocks every cycle KPI — no PR-turnaround / rework / defect-escape metric without it</td><td>M</td><td>5</td><td><span class="sel">SEL</span></td></tr>
+<tr><td><b>CI-2</b></td><td>ESLint config + lint script (server + client)</td><td>Ops</td><td>Prereq for CI-1; auto-catches a defect class → raises review effectiveness</td><td>S</td><td>4</td><td><span class="sel">SEL</span></td></tr>
+<tr><td><b>SP-1</b></td><td>Scan Profiles — Quick / Standard / Thorough</td><td>UX</td><td>Solves the felt pain (865 cases unusable; env-hacking); first-class run-intensity control</td><td>M</td><td>5</td><td><span class="sel">SEL</span></td></tr>
+<tr><td><b>EV-1</b></td><td>Evaluator P/R/F1 calibration behind EVAL_PROMPT_VERSION</td><td>Accuracy</td><td>Cuts false positives we observed (clean refusal marked fail); W2 golden snapshots guard it</td><td>M</td><td>4</td><td><span class="sel">SEL</span></td></tr>
+<tr><td><b>SEC-1</b></td><td>H-05 — refresh token → HttpOnly cookie</td><td>Security</td><td>Closes the last deferred High from the audit; removes XSS-exfil of the long-lived token</td><td>M</td><td>4</td><td><span class="sel">SEL</span></td></tr>
+<tr><td><b>TR-1</b></td><td>Per-agent run history + posture trend</td><td>UX</td><td>Pairs with Re-test — show whether each scan improved/regressed; CISO-facing</td><td>M</td><td>4</td><td><span class="sel">SEL</span></td></tr>
+<tr><td><b>LAB-1</b></td><td>Dockerize DVRAG into compose + 2 new vuln classes</td><td>Demo</td><td>Reliable one-command lab + richer target; high demo leverage, low effort</td><td>S</td><td>4</td><td><span class="star">STR</span></td></tr>
+<tr><td>RR-1</td><td>Detector tier-1 hardening + LLM-judge fallback (W6)</td><td>Accuracy</td><td>Lowers detector false-positive rate (benign slice)</td><td>M</td><td>3</td><td></td></tr>
+<tr><td>RR-2</td><td>Turn on SUITE_RELEVANCE_LLM_RERANK, measured (W4)</td><td>Accuracy</td><td>Validate relevance re-rank with a real before/after</td><td>S</td><td>3</td><td></td></tr>
+<tr><td>ML-1</td><td>Multilingual into high-tier strategy families (W7)</td><td>Accuracy</td><td>Broadens coverage by ≥2 unique families</td><td>M</td><td>3</td><td></td></tr>
+<tr><td>EX-1</td><td>Findings export — CSV / JSON / SARIF</td><td>Integrations</td><td>Drops findings into Jira / GitHub code-scanning</td><td>S</td><td>3</td><td></td></tr>
+<tr><td>SCH-1</td><td>Scheduled re-verification + regression alert</td><td>UX/Ops</td><td>Auto re-test findings on a cadence; webhook on regression</td><td>M</td><td>3</td><td></td></tr>
+<tr><td>INT-1</td><td>Slack + SIEM webhooks w/ "Send test" (W10)</td><td>Integrations</td><td>Push run / critical-finding events to ops tooling</td><td>M</td><td>3</td><td></td></tr>
+<tr><td>PIL-1</td><td>Pilot install runbook + RC tag (W12)</td><td>Pilot</td><td>Gates "pilot-ready"; depends on CI-1</td><td>M</td><td>3</td><td></td></tr>
+<tr><td>OBS-1</td><td>Grafana dashboard JSON + alerts for nemesis_* metrics</td><td>Ops</td><td>Makes W2 observability actionable</td><td>S</td><td>2</td><td></td></tr>
+<tr><td>SEC-2</td><td>M-04 DNS-rebinding IP pinning</td><td>Security</td><td>Hardens the SSRF TOCTOU (partly mitigated today)</td><td>M</td><td>2</td><td></td></tr>
+<tr><td>REL-1</td><td>M-08 cancellation: batch poll + cancel-check before reporting</td><td>Reliability</td><td>Removes per-case N+1; respects late cancels</td><td>S</td><td>2</td><td></td></tr>
+</table>
+
+<h2 class="page-break">2 · Selected next-cycle items — scope + acceptance criteria</h2>
+<p class="small">Goal: 100% of these leave today with testable acceptance criteria. Each is one independently-shippable PR.</p>
+
+<div class="card"><div class="t">CI-1 + CI-2 — CI pipeline + lint <span class="small">(Ops · M)</span></div>
+<div class="sc"><b>In:</b> <code>ci.yml</code> running tsc + vitest + lint (server) and tsc-b + lint + build (client) on PRs; ESLint + lint scripts; remote + branch-protect <code>main</code>. <b>Out:</b> deploy-on-merge, coverage gates, mass reformat (don't touch engine / W2 golden snapshots).</div>
+<div class="ac"><b>Acceptance:</b> ☐ PR triggers CI; green check required to merge · ☐ <code>npm run lint</code> passes both packages (max-warnings 0) · ☐ 119 server tests + client build run; a broken PR goes red · ☐ <code>origin</code> exists, <code>main</code> protected.</div></div>
+
+<div class="card"><div class="t">SP-1 — Scan Profiles (Quick / Standard / Thorough) <span class="small">(UX · M)</span></div>
+<div class="sc"><b>In:</b> <code>run-tests</code> accepts <code>profile</code>; pure <code>profileToConfig()</code> (tier thresholds + chain depth) threaded per-run; UI selector + est. count; profile stored on the run + shown on the report. <b>Out:</b> per-category selection; changing the default (default = standard == today).</div>
+<div class="ac"><b>Acceptance:</b> ☐ quick ≈1 case/probe, thorough largest; unit test on <code>profileToConfig()</code> · ☐ default byte-identical to today (back-compat test) · ☐ UI shows profile + est. count pre-run; profile appears on the report.</div></div>
+
+<div class="card"><div class="t">EV-1 — Evaluator calibration <span class="small">(Accuracy · M · depends on W2 golden — done)</span></div>
+<div class="sc"><b>In:</b> <code>EVAL_PROMPT_VERSION</code> flag (default = current); a v2 prompt tuned for fewer false-positives; <code>bench:eval</code> reporting P/R/F1 v1 vs v2 + a ship decision. <b>Out:</b> rewriting the verdict engine; expanding the labeled set beyond ~50.</div>
+<div class="ac"><b>Acceptance:</b> ☐ <code>bench:eval</code> prints v1 vs v2 macro-P/R/F1 + a recorded decision in <code>bench.json</code> · ☐ v2 improves ≥1 of {P,R,F1} by ≥5% with none regressing below baseline, OR is explicitly not shipped · ☐ default unchanged unless flag set; W2 golden green/intentionally refreshed.</div></div>
+
+<div class="card"><div class="t">SEC-1 — H-05 refresh token → HttpOnly cookie <span class="small">(Security · M)</span></div>
+<div class="sc"><b>In:</b> server sets <code>cv_rt</code> HttpOnly/Secure/SameSite=Strict on login/verify/refresh; <code>/auth/refresh</code> reads cookie-or-body; logout clears it; client stops persisting <code>cv_refresh</code>. <b>Out:</b> moving the access token out of localStorage (follow-up); SSO cookie redesign.</div>
+<div class="ac"><b>Acceptance:</b> ☐ after login the refresh token is NOT in localStorage; <code>cv_rt</code> HttpOnly cookie set · ☐ silent refresh after access-token expiry works via cookie; logout invalidates · ☐ verified locally end-to-end before any prod deploy; tests green.</div></div>
+
+<div class="card"><div class="t">TR-1 — Run history + posture trend <span class="small">(UX · M)</span></div>
+<div class="sc"><b>In:</b> per-agent "History" list (date, profile, risk score, fails) + risk-over-time sparkline + Δ vs previous run (introduced / resolved by <code>externalId</code>). <b>Out:</b> cross-agent org rollups; CSV export.</div>
+<div class="ac"><b>Acceptance:</b> ☐ agent detail shows ≥2 prior runs with a risk trend · ☐ selecting two runs shows "introduced N / resolved M" by <code>externalId</code> · ☐ no new DB tables.</div></div>
+
+<div class="card" style="border-left-color:var(--med)"><div class="t">LAB-1 ⭐ (stretch) — Dockerize DVRAG + 2 vuln classes <span class="small">(Demo · S)</span></div>
+<div class="ac"><b>Acceptance:</b> ☐ <code>docker compose --profile lab up</code> starts DVRAG on :4001 · ☐ two new vuln classes (tool-call SSRF, upload-borne indirect injection) leak under attack · ☐ README updated.</div></div>
+
+<h2 class="page-break">3 · This Tuesday's review pass</h2>
+<p>Fresh-eyes correctness + security review of the just-shipped work (Remediation Re-test + the riskiest audit fixes).
+<b>Defects caught in review: 3 — all fixed pre-QA (0 escaped).</b></p>
+<table>
+<tr><th>Sev</th><th>Defect</th><th>Status</th></tr>
+<tr><td><span class="pill" style="background:var(--med)">MED</span></td><td>Re-verify delta dropped <code>error</code>/missing re-tests from both buckets → "Resolved X of Y" + green all-clear could mislead an operator about whether the fix held</td><td><span class="chk">✓ fixed</span> — added <code>unevaluated</code> bucket + gated all-clear</td></tr>
+<tr><td><span class="pill" style="background:var(--low)">LOW</span></td><td><code>/reverify/:runId</code> with no <code>?parent=</code> fired <code>GET /test-runs//results</code></td><td><span class="chk">✓ fixed</span> — guard added</td></tr>
+<tr><td><span class="pill" style="background:var(--low)">LOW</span></td><td>IPv4-mapped IPv6 (<code>::ffff:169.254.*</code>) bypassed metadata block in relaxed SSRF mode</td><td><span class="chk">✓ fixed</span> — normalize + block</td></tr>
+</table>
+<p class="small"><b>Verified-correct (no change):</b> async/override-aware <code>requirePermission</code>, H-03 MFA grace math, M-02 MFA lockout, the cartesian pre-built-case execution path, the C-02 TC-NNN remap. Verdict: <b>fix-then-ship → shipped.</b> Server <code>tsc</code> + 119 tests + client <code>tsc</code> green.</p>
+
+<h2>4 · Making the KPIs measurable</h2>
+<p class="small">Most KPIs are un-measurable until CI-1 lands — that's why it's the #1 pick.</p>
+<table>
+<tr><th>KPI</th><th>How we measure it</th><th>This Tuesday</th></tr>
+<tr><td>Viable ideas added / selected</td><td>This brief + a <code>backlog.md</code></td><td><b>17 added / 6 (+1) selected</b></td></tr>
+<tr><td>% items leaving Tuesday scoped</td><td>§2 scope + acceptance criteria</td><td><b>100% (6/6)</b></td></tr>
+<tr><td>PR review turnaround</td><td>GitHub PR created→first-review (after CI-1); target &lt; 1 business day</td><td>pending CI-1</td></tr>
+<tr><td>Defects caught vs escaped to QA</td><td>Label review-found vs QA-found defects</td><td><b>3 caught / 0 escaped</b></td></tr>
+<tr><td>Rework rate</td><td>% PRs needing ≥2 review rounds (after CI-1)</td><td>pending CI-1</td></tr>
+</table>
+
+</body></html>

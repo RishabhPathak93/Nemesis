@@ -6,7 +6,7 @@ import { Topbar } from './Topbar';
 export function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   return (
-    <div className="flex h-full bg-slate-50">
+    <div className="flex h-full bg-muted dark:bg-background">
       <Sidebar />
       <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">

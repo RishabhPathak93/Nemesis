@@ -9,7 +9,7 @@ interface StatsCardProps {
   accent?: string;
 }
 
-export function StatsCard({ label, value, icon, hint, accent = 'bg-indigo-50 text-indigo-600' }: StatsCardProps) {
+export function StatsCard({ label, value, icon, hint, accent = 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' }: StatsCardProps) {
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between">

@@ -15,14 +15,14 @@ interface ErrorStateProps {
 
 export function ErrorState({ message, title = "Couldn't load this page", onRetry, full = false }: ErrorStateProps) {
   const body = (
-    <Card className="mx-auto max-w-md border-red-200 bg-red-50">
+    <Card className="mx-auto max-w-md border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10">
       <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-700">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300">
           <AlertTriangle className="h-5 w-5" />
         </div>
         <div>
-          <div className="font-semibold text-red-900">{title}</div>
-          <div className="mt-1 max-w-sm break-words text-sm text-red-700">{message}</div>
+          <div className="font-semibold text-red-900 dark:text-red-200">{title}</div>
+          <div className="mt-1 max-w-sm break-words text-sm text-red-700 dark:text-red-300">{message}</div>
         </div>
         {onRetry && (
           <Button variant="outline" size="sm" onClick={onRetry}>

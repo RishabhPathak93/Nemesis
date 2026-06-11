@@ -9,31 +9,36 @@ import { withTimeout } from '../index';
  */
 export function createOpenAiClient(cfg: LlmResolvedConfig): LlmClient {
   const labelPrefix = cfg.baseUrl ? 'openai-compat' : 'openai';
+  // M-07: construct the SDK ONCE per client so the HTTP connection pool /
+  // keep-alive is reused across calls (a large cartesian run makes hundreds–
+  // thousands of calls). The per-call timeout is passed via request options.
+  const sdk = new OpenAI({
+    apiKey: cfg.apiKey || 'no-auth',
+    baseURL: cfg.baseUrl || undefined,
+    maxRetries: 0,
+  });
   return {
     provider: cfg.baseUrl ? 'openai_compatible' : 'openai',
     label: `${labelPrefix} · ${cfg.model}`,
     async call(opts: LlmCallOptions): Promise<string> {
       const timeoutMs = opts.timeoutMs ?? 120_000;
-      const sdk = new OpenAI({
-        apiKey: cfg.apiKey || 'no-auth',
-        baseURL: cfg.baseUrl || undefined,
-        timeout: timeoutMs, // SDK-level HTTP timeout
-        maxRetries: 0,
-      });
       const res = await withTimeout(
-        sdk.chat.completions.create({
-          model: cfg.model,
-          max_tokens: opts.maxTokens ?? 4096,
-          temperature: opts.temperature ?? 0.7,
-          stream: false,
-          messages: [
-            { role: 'system', content: opts.system },
-            { role: 'user', content: opts.user },
-          ],
-          ...(opts.responseFormat === 'json'
-            ? { response_format: { type: 'json_object' } as const }
-            : {}),
-        }),
+        sdk.chat.completions.create(
+          {
+            model: cfg.model,
+            max_tokens: opts.maxTokens ?? 4096,
+            temperature: opts.temperature ?? 0.7,
+            stream: false,
+            messages: [
+              { role: 'system', content: opts.system },
+              { role: 'user', content: opts.user },
+            ],
+            ...(opts.responseFormat === 'json'
+              ? { response_format: { type: 'json_object' } as const }
+              : {}),
+          },
+          { timeout: timeoutMs },
+        ),
         timeoutMs,
         `${labelPrefix} ${cfg.model}`,
       );

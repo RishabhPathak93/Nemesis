@@ -29,7 +29,7 @@ export default function Signup() {
   }
 
   return (
-    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-6">
+    <div className="flex h-full items-center justify-center bg-gradient-to-br from-muted to-indigo-50 dark:to-indigo-950/40 dark:from-background p-6">
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 flex items-center gap-2">
           <img src="/logos/reticle.svg" alt="" className="h-9 w-9" />
@@ -72,7 +72,7 @@ export default function Signup() {
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-indigo-600 hover:underline">
+          <Link to="/login" className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
             Sign in
           </Link>
         </p>

@@ -44,6 +44,35 @@ export const llmCallsTotal = new client.Counter({
   labelNames: ['provider', 'outcome'],
 });
 
+// ── Roadmap W2 — run-pipeline observability ──────────────────────────────────
+// Queue depth (waiting jobs) and run-state transitions, so operators can see
+// what the engine is doing without DB access. (`nemesis_` prefix per the
+// roadmap; the older app metrics keep the `cv_` prefix — reconcile later.)
+export const nemesisQueueDepth = new client.Gauge({
+  name: 'nemesis_queue_depth',
+  help: 'Bull queue waiting-job count, by queue.',
+  labelNames: ['queue'],
+});
+
+export const nemesisRunState = new client.Counter({
+  name: 'nemesis_run_state',
+  help: 'Test-run state transitions, by from/to.',
+  labelNames: ['from', 'to'],
+});
+
+export const nemesisAgentLatencyMs = new client.Gauge({
+  name: 'nemesis_agent_latency_ms',
+  help: 'Most recent outbound agent-call latency, milliseconds.',
+});
+
+// Pre-register the expected series at 0 so the metrics always appear on /metrics
+// (a labelled counter/gauge emits no data line until a label combo is touched).
+nemesisQueueDepth.set({ queue: 'test_runs' }, 0);
+for (const t of ['running', 'completed', 'failed'] as const) {
+  nemesisRunState.inc({ from: 'queued', to: t }, 0);
+}
+nemesisAgentLatencyMs.set(0);
+
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
   const start = process.hrtime.bigint();
   res.on('finish', () => {

@@ -53,10 +53,10 @@ interface Facets {
 }
 
 const SEVERITY_TONE: Record<string, string> = {
-  critical: 'bg-red-100 text-red-800 ring-red-200',
-  high: 'bg-orange-100 text-orange-800 ring-orange-200',
-  medium: 'bg-amber-100 text-amber-900 ring-amber-200',
-  low: 'bg-slate-100 text-slate-700 ring-slate-200',
+  critical: 'bg-red-100 dark:bg-red-500/15 text-red-800 dark:text-red-300 ring-red-200 dark:ring-red-500/30',
+  high: 'bg-orange-100 dark:bg-orange-500/15 text-orange-800 dark:text-orange-300 ring-orange-200 dark:ring-orange-500/30',
+  medium: 'bg-amber-100 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 ring-amber-200 dark:ring-amber-500/30',
+  low: 'bg-muted text-foreground ring-border',
 };
 
 const SOURCE_ICON: Record<string, typeof ShieldAlert> = {
@@ -198,7 +198,7 @@ export default function ProbeLibrary() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
             <div className="md:col-span-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search title, description, slug…"
                   value={search}
@@ -277,7 +277,7 @@ export default function ProbeLibrary() {
                 onClick={() => setSelected(p)}
               >
                 <CardContent className="flex items-start gap-3 pt-5">
-                  <Icon className="mt-0.5 h-5 w-5 text-indigo-600" />
+                  <Icon className="mt-0.5 h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-foreground">{p.title}</span>
@@ -286,7 +286,7 @@ export default function ProbeLibrary() {
                       </span>
                       <Badge variant="outline" className="text-xs">{p.source}</Badge>
                       <Badge variant="outline" className="text-xs">{p.category}</Badge>
-                      {p.orgDisabled && <Badge className="bg-slate-200 text-slate-700">disabled</Badge>}
+                      {p.orgDisabled && <Badge className="bg-muted text-foreground">disabled</Badge>}
                       <button
                         type="button"
                         onClick={async (e) => {
@@ -298,7 +298,7 @@ export default function ProbeLibrary() {
                             toast.success(p.orgDisabled ? 'Probe enabled for this org' : 'Probe disabled for this org');
                           } catch (err) { toast.error(apiError(err)); }
                         }}
-                        className="ml-auto rounded border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:border-indigo-300 hover:text-indigo-600"
+                        className="ml-auto rounded border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:border-indigo-300 hover:text-indigo-600 dark:text-indigo-400"
                       >
                         {p.orgDisabled ? 'Enable' : 'Disable'}
                       </button>
@@ -309,7 +309,7 @@ export default function ProbeLibrary() {
                         <Badge key={a} variant="outline" className="text-[10px]">{a}</Badge>
                       ))}
                       {p.complianceMappings.slice(0, 4).map((m) => (
-                        <Badge key={m.id} className="bg-indigo-50 text-indigo-700 text-[10px]">
+                        <Badge key={m.id} className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-[10px]">
                           {m.framework}: {m.controlId}
                         </Badge>
                       ))}
@@ -364,26 +364,26 @@ export default function ProbeLibrary() {
                 <div className="space-y-3 text-sm">
                   <div>
                     <div className="mb-1 font-medium text-foreground">Seed payload</div>
-                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 font-mono text-xs">
+                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs">
                       {selected.seedPayload}
                     </pre>
                   </div>
                   {selected.expectedFailIndicators.length > 0 && (
                     <div>
-                      <div className="mb-1 font-medium text-red-700">Expected FAIL indicators</div>
+                      <div className="mb-1 font-medium text-red-700 dark:text-red-300">Expected FAIL indicators</div>
                       <div className="flex flex-wrap gap-1">
                         {selected.expectedFailIndicators.map((s) => (
-                          <Badge key={s} className="bg-red-50 text-red-700 text-[10px]">{s}</Badge>
+                          <Badge key={s} className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 text-[10px]">{s}</Badge>
                         ))}
                       </div>
                     </div>
                   )}
                   {selected.expectedPassIndicators.length > 0 && (
                     <div>
-                      <div className="mb-1 font-medium text-green-700">Expected PASS indicators</div>
+                      <div className="mb-1 font-medium text-green-700 dark:text-green-300">Expected PASS indicators</div>
                       <div className="flex flex-wrap gap-1">
                         {selected.expectedPassIndicators.map((s) => (
-                          <Badge key={s} className="bg-green-50 text-green-700 text-[10px]">{s}</Badge>
+                          <Badge key={s} className="bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[10px]">{s}</Badge>
                         ))}
                       </div>
                     </div>
@@ -414,7 +414,7 @@ export default function ProbeLibrary() {
                       <div className="space-y-1">
                         {selected.complianceMappings.map((m) => (
                           <div key={m.id} className="flex items-baseline gap-2 text-xs">
-                            <span className="font-mono text-indigo-700">{m.framework}</span>
+                            <span className="font-mono text-indigo-700 dark:text-indigo-300">{m.framework}</span>
                             <span className="text-foreground">{m.controlId}</span>
                           </div>
                         ))}

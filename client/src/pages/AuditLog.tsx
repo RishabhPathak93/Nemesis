@@ -140,7 +140,7 @@ export default function AuditLog() {
                         {r.actor ? (
                           <span title={r.actor.email}>{r.actor.name}</span>
                         ) : (
-                          <span className="text-slate-400">{r.actorType}</span>
+                          <span className="text-muted-foreground">{r.actorType}</span>
                         )}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">

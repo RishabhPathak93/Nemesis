@@ -12,10 +12,10 @@ const SEVERITY_BAR: Record<string, string> = {
 };
 
 const SEVERITY_TEXT: Record<string, string> = {
-  critical: 'text-red-700',
-  high: 'text-orange-700',
-  medium: 'text-amber-800',
-  low: 'text-blue-700',
+  critical: 'text-red-700 dark:text-red-300',
+  high: 'text-orange-700 dark:text-orange-300',
+  medium: 'text-amber-800 dark:text-amber-300',
+  low: 'text-blue-700 dark:text-blue-300',
 };
 
 const SEVERITY_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -23,11 +23,11 @@ const SEVERITY_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2,
 interface StatusInfo { label: string; tone: string }
 function resultToStatus(result: string): StatusInfo {
   switch (result.toLowerCase()) {
-    case 'fail':    return { label: 'Open',     tone: 'bg-red-50 text-red-700 ring-red-200' };
-    case 'partial': return { label: 'Open',     tone: 'bg-orange-50 text-orange-700 ring-orange-200' };
-    case 'pass':    return { label: 'Closed',   tone: 'bg-emerald-50 text-emerald-700 ring-emerald-200' };
-    case 'error':   return { label: 'Error',    tone: 'bg-slate-100 text-slate-700 ring-slate-200' };
-    default:        return { label: result,     tone: 'bg-slate-100 text-slate-700 ring-slate-200' };
+    case 'fail':    return { label: 'Open',     tone: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 ring-red-200 dark:ring-red-500/30' };
+    case 'partial': return { label: 'Open',     tone: 'bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-orange-200 dark:ring-orange-500/30' };
+    case 'pass':    return { label: 'Closed',   tone: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-emerald-200 dark:ring-emerald-500/30' };
+    case 'error':   return { label: 'Error',    tone: 'bg-muted text-foreground ring-border' };
+    default:        return { label: result,     tone: 'bg-muted text-foreground ring-border' };
   }
 }
 
@@ -102,22 +102,22 @@ export function ReportFindingsTab({ report }: ReportFindingsTabProps) {
             <FilterChip active={severityFilter === 'all'} onClick={() => setSeverityFilter('all')}>All</FilterChip>
             <FilterChip
               active={severityFilter === 'critical'}
-              tone="text-red-700 bg-red-50 ring-red-200"
+              tone="text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 ring-red-200 dark:ring-red-500/30"
               onClick={() => setSeverityFilter('critical')}
             >Critical <Count>{counts.critical}</Count></FilterChip>
             <FilterChip
               active={severityFilter === 'high'}
-              tone="text-orange-700 bg-orange-50 ring-orange-200"
+              tone="text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-500/10 ring-orange-200 dark:ring-orange-500/30"
               onClick={() => setSeverityFilter('high')}
             >High <Count>{counts.high}</Count></FilterChip>
             <FilterChip
               active={severityFilter === 'medium'}
-              tone="text-amber-800 bg-amber-50 ring-amber-200"
+              tone="text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 ring-amber-200 dark:ring-amber-500/30"
               onClick={() => setSeverityFilter('medium')}
             >Medium <Count>{counts.medium}</Count></FilterChip>
             <FilterChip
               active={severityFilter === 'low'}
-              tone="text-blue-700 bg-blue-50 ring-blue-200"
+              tone="text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/10 ring-blue-200 dark:ring-blue-500/30"
               onClick={() => setSeverityFilter('low')}
             >Low <Count>{counts.low}</Count></FilterChip>
           </FilterGroup>
@@ -125,12 +125,12 @@ export function ReportFindingsTab({ report }: ReportFindingsTabProps) {
             <FilterChip active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</FilterChip>
             <FilterChip
               active={statusFilter === 'open'}
-              tone="text-red-700 bg-red-50 ring-red-200"
+              tone="text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 ring-red-200 dark:ring-red-500/30"
               onClick={() => setStatusFilter('open')}
             >Open <Count>{counts.open}</Count></FilterChip>
             <FilterChip
               active={statusFilter === 'closed'}
-              tone="text-emerald-700 bg-emerald-50 ring-emerald-200"
+              tone="text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 ring-emerald-200 dark:ring-emerald-500/30"
               onClick={() => setStatusFilter('closed')}
             >Closed <Count>{counts.closed}</Count></FilterChip>
           </FilterGroup>
@@ -238,10 +238,10 @@ function FindingDetailPanel({ result, onClose }: FindingDetailPanelProps) {
   const sevKey = result.testCase.severity.toLowerCase();
   const status = resultToStatus(result.result);
   const sevTone: Record<string, string> = {
-    critical: 'bg-red-50 ring-red-200',
-    high:     'bg-orange-50 ring-orange-200',
-    medium:   'bg-amber-50 ring-amber-200',
-    low:      'bg-blue-50 ring-blue-200',
+    critical: 'bg-red-50 dark:bg-red-500/10 ring-red-200 dark:ring-red-500/30',
+    high:     'bg-orange-50 dark:bg-orange-500/10 ring-orange-200 dark:ring-orange-500/30',
+    medium:   'bg-amber-50 dark:bg-amber-500/10 ring-amber-200 dark:ring-amber-500/30',
+    low:      'bg-blue-50 dark:bg-blue-500/10 ring-blue-200 dark:ring-blue-500/30',
   };
   const sevIconBg: Record<string, string> = {
     critical: 'bg-red-500',
@@ -280,10 +280,10 @@ function FindingDetailPanel({ result, onClose }: FindingDetailPanelProps) {
           <div className="flex-1">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Severity</div>
             <div className={`text-sm font-semibold ${SEVERITY_TEXT[sevKey] ?? 'text-foreground'}`}>
-              {result.testCase.severity[0].toUpperCase() + result.testCase.severity.slice(1)} · {result.testCase.category}
+              {result.testCase.severity.charAt(0).toUpperCase() + result.testCase.severity.slice(1)} · {result.testCase.category}
             </div>
           </div>
-          <div className="rounded-md bg-white/60 px-3 py-1 text-right ring-1 ring-inset ring-foreground/10">
+          <div className="rounded-md bg-card/60 px-3 py-1 text-right ring-1 ring-inset ring-foreground/10">
             <div className={`text-lg font-bold tabular-nums ${SEVERITY_TEXT[sevKey] ?? 'text-foreground'}`}>
               {(result.confidence * 100).toFixed(0)}%
             </div>
@@ -346,7 +346,7 @@ function FindingDetailPanel({ result, onClose }: FindingDetailPanelProps) {
 
         {result.exploitationEvidence && (
           <Section title="Exploitation evidence">
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+            <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-900 dark:text-red-200">
               {result.exploitationEvidence}
             </div>
           </Section>
@@ -376,10 +376,10 @@ function MetaCell({ label, value }: { label: string; value: string }) {
 
 function TranscriptTurn({ role, body, tone }: { role: string; body: string; tone: 'attacker' | 'agent' | 'fail' | 'judge' }) {
   const roleTone: Record<string, string> = {
-    attacker: 'bg-violet-100 text-violet-800',
-    agent:    'bg-indigo-100 text-indigo-700',
-    fail:     'bg-red-100 text-red-700',
-    judge:    'bg-slate-100 text-slate-700',
+    attacker: 'bg-violet-100 dark:bg-violet-500/15 text-violet-800 dark:text-violet-300',
+    agent:    'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300',
+    fail:     'bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-300',
+    judge:    'bg-muted text-foreground',
   };
   const bgTint = tone === 'fail' ? 'bg-red-50/40 border-l-[3px] border-l-red-500' : '';
   return (

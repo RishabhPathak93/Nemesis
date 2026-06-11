@@ -26,11 +26,11 @@ function severityCounts(findings: FullReport['keyFindings']): { critical: number
 
 function ratingTone(rating: string): string {
   switch ((rating || '').toLowerCase()) {
-    case 'critical': return 'text-red-700 bg-red-50 ring-red-200';
-    case 'high':     return 'text-orange-700 bg-orange-50 ring-orange-200';
-    case 'medium':   return 'text-amber-800 bg-amber-50 ring-amber-200';
-    case 'low':      return 'text-blue-700 bg-blue-50 ring-blue-200';
-    default:         return 'text-slate-700 bg-slate-50 ring-slate-200';
+    case 'critical': return 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/10 ring-red-200 dark:ring-red-500/30';
+    case 'high':     return 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-500/10 ring-orange-200 dark:ring-orange-500/30';
+    case 'medium':   return 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 ring-amber-200 dark:ring-amber-500/30';
+    case 'low':      return 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/10 ring-blue-200 dark:ring-blue-500/30';
+    default:         return 'text-foreground bg-muted ring-border';
   }
 }
 
@@ -180,9 +180,9 @@ export function ReportOverviewTab({ report }: ReportOverviewTabProps) {
           <CardContent className="flex flex-1 flex-col pt-6">
             <SectionLabel>Test outcomes</SectionLabel>
             <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-border">
-              <OutcomeCell value={passCount} label="Passed" tone="text-emerald-600" />
-              <OutcomeCell value={failCount} label="Failed" tone="text-red-600" />
-              <OutcomeCell value={partialCount} label="Partial" tone="text-amber-600" />
+              <OutcomeCell value={passCount} label="Passed" tone="text-emerald-600 dark:text-emerald-400" />
+              <OutcomeCell value={failCount} label="Failed" tone="text-red-600 dark:text-red-400" />
+              <OutcomeCell value={partialCount} label="Partial" tone="text-amber-600 dark:text-amber-400" />
               <OutcomeCell value={report.results.length} label="Total" tone="text-foreground" />
             </div>
             <div className="mt-auto pt-4">

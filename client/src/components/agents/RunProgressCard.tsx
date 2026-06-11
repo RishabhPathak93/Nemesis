@@ -158,7 +158,7 @@ export function RunProgressCard({ testRunId, onComplete }: Props) {
 
         {/* Progress bar — indeterminate during prepare/report, percent during execute */}
         {indeterminate ? (
-          <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
             <div className="absolute inset-y-0 w-1/3 animate-[indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-indigo-500" />
             <style>{`@keyframes indeterminate { 0% { left: -33%; } 100% { left: 100%; } }`}</style>
           </div>
@@ -169,9 +169,9 @@ export function RunProgressCard({ testRunId, onComplete }: Props) {
         {/* Test execution summary */}
         {(status.status === 'RUNNING' && status.phase === 'executing') || status.status === 'COMPLETED' ? (
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <span><span className="font-semibold text-emerald-600">{status.summary.pass}</span> pass</span>
-            <span><span className="font-semibold text-red-600">{status.summary.fail}</span> fail</span>
-            <span><span className="font-semibold text-yellow-600">{status.summary.partial}</span> partial</span>
+            <span><span className="font-semibold text-emerald-600 dark:text-emerald-400">{status.summary.pass}</span> pass</span>
+            <span><span className="font-semibold text-red-600 dark:text-red-400">{status.summary.fail}</span> fail</span>
+            <span><span className="font-semibold text-yellow-600 dark:text-yellow-400">{status.summary.partial}</span> partial</span>
             <span><span className="font-semibold text-muted-foreground">{status.summary.error}</span> error</span>
             <span className="ml-auto">Total: {status.totalTests}</span>
           </div>
@@ -179,7 +179,7 @@ export function RunProgressCard({ testRunId, onComplete }: Props) {
 
         {/* Helpful hint when prepare is taking a while */}
         {status.status === 'RUNNING' && status.phase === 'preparing' && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-800">
+          <div className="rounded-md border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-2 text-[11px] text-amber-800 dark:text-amber-300">
             Suite generation calls your configured LLM. If you're using a local reasoning model
             (e.g. <code>deepseek-r1</code>) on CPU, this can take several minutes.
             For faster runs use <code>qwen2.5:7b</code>, <code>llama3.1:8b</code>, or <code>mistral:7b</code>.
@@ -192,9 +192,9 @@ export function RunProgressCard({ testRunId, onComplete }: Props) {
 
 function PhasePill({ active, done, label }: { active: boolean; done: boolean; label: string }) {
   const cls = active
-    ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200'
+    ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200'
     : done
-      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-      : 'bg-slate-50 text-muted-foreground ring-1 ring-slate-200';
+      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-500/30'
+      : 'bg-muted text-muted-foreground ring-1 ring-border';
   return <span className={`rounded px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cls}`}>{label}</span>;
 }

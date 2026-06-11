@@ -106,7 +106,7 @@ export default function Agents() {
                     <Link
                       to={`/agents/${a.id}${trailing}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="font-medium text-foreground hover:text-indigo-600"
+                      className="font-medium text-foreground hover:text-indigo-600 dark:text-indigo-400"
                     >
                       {a.name}
                     </Link>
@@ -141,7 +141,7 @@ export default function Agents() {
                     {a.riskScore != null ? (
                       <RiskScore score={a.riskScore} size="sm" showLabel={false} />
                     ) : (
-                      <span className="text-xs text-slate-400">Not tested</span>
+                      <span className="text-xs text-muted-foreground">Not tested</span>
                     )}
                   </TableCell>
                 </TableRow>

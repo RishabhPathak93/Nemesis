@@ -139,7 +139,7 @@ export default function Notifications() {
                   const Icon = KIND_ICON[c.kind];
                   return (
                     <TableRow key={c.id}>
-                      <TableCell className="font-medium flex items-center gap-2"><Icon className="h-4 w-4 text-slate-400" /> {c.name}</TableCell>
+                      <TableCell className="font-medium flex items-center gap-2"><Icon className="h-4 w-4 text-muted-foreground" /> {c.name}</TableCell>
                       <TableCell><Badge variant="outline">{c.kind}</Badge></TableCell>
                       <TableCell>{c.enabled ? <Badge>enabled</Badge> : <Badge variant="outline">disabled</Badge>}</TableCell>
                       <TableCell className="text-xs">{new Date(c.createdAt).toLocaleString()}</TableCell>

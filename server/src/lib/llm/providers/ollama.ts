@@ -117,10 +117,19 @@ async function streamAndCollect(
   if (res.status >= 400) {
     let errBody = '';
     try {
-      for await (const c of res.data) errBody += c.toString();
+      // M-12: bound the error-body read (5s / 8 KB) so a stalled error stream
+      // (headers sent, body hangs) can't block the worker indefinitely.
+      const readErr = (async () => {
+        for await (const c of res.data) {
+          errBody += c.toString();
+          if (errBody.length > 8192) break;
+        }
+      })();
+      await Promise.race([readErr, new Promise((r) => setTimeout(r, 5000))]);
     } catch {
       /* ignore */
     }
+    try { (res.data as { destroy?: () => void }).destroy?.(); } catch { /* ignore */ }
     throw new Error(`Ollama HTTP ${res.status}: ${errBody.slice(0, 300)}`);
   }
 

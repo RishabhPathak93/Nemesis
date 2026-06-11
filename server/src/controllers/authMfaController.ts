@@ -119,6 +119,12 @@ export async function verifyLogin(req: Request, res: Response, next: NextFunctio
     }
     const user = await prisma.user.findUnique({ where: { id: userId }, include: { org: true } });
     if (!user || !user.mfaEnabled || !user.mfaSecret) throw new HttpError(401, 'MFA not enabled.');
+    // M-02: re-assert account state at the second factor — the password step's
+    // isActive / lockout checks don't carry across the 5-minute MFA session.
+    if (!user.isActive) throw new HttpError(401, 'Account deactivated.');
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new HttpError(423, 'Account temporarily locked. Try again later.');
+    }
 
     let success = false;
     let consumedBackup = -1;
@@ -130,6 +136,21 @@ export async function verifyLogin(req: Request, res: Response, next: NextFunctio
     }
 
     if (!success) {
+      // M-02: count failed TOTP/backup attempts toward the SAME account lockout
+      // the password path uses. Previously the MFA step had no per-account
+      // throttle (only a coarse per-IP limit), so a 6-digit code with a ±1 step
+      // window was brute-forceable across rotating IPs.
+      const nextCount = user.failedLoginCount + 1;
+      const shouldLock = nextCount >= 10; // LOCKOUT_THRESHOLD
+      await prisma.user
+        .update({
+          where: { id: user.id },
+          data: {
+            failedLoginCount: shouldLock ? 0 : nextCount,
+            lockedUntil: shouldLock ? new Date(Date.now() + 15 * 60 * 1000) : user.lockedUntil,
+          },
+        })
+        .catch(() => {});
       try {
         await prisma.loginAttempt.create({ data: {
           email: user.email,
@@ -137,10 +158,10 @@ export async function verifyLogin(req: Request, res: Response, next: NextFunctio
           ip: req.ip ?? 'unknown',
           userAgent: typeof req.headers['user-agent'] === 'string' ? (req.headers['user-agent'] as string).slice(0, 500) : null,
           success: false,
-          reason: 'mfa_failed',
+          reason: shouldLock ? 'mfa_locked' : 'mfa_failed',
         }});
       } catch { /* ignore */ }
-      throw new HttpError(401, 'MFA code did not verify.');
+      throw new HttpError(shouldLock ? 423 : 401, shouldLock ? 'Too many attempts — account locked. Try again later.' : 'MFA code did not verify.');
     }
 
     // If a backup code was used, remove it.
